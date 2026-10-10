@@ -18,12 +18,15 @@
 # --------------------------------------------------------------------------
 
 import os
+from pathlib import Path
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 
+ROOT_DIR = Path(__file__).resolve().parent.parent
+
 import sys
 
-sys.path.append('..')
+sys.path.append(str(ROOT_DIR))
 
 import time
 from datetime import datetime
@@ -199,7 +202,7 @@ def show_algorithm_parameters(algo_name):
     algo_param_frame['text'] = f"{algo_name}"
 
     required_parameters, value_type, default_value = get_required_parameters(
-        path=f"../llm4ad/method/{algo_name}/paras.yaml")
+        path=ROOT_DIR / 'llm4ad' / 'method' / algo_name / 'paras.yaml')
     method_para_value_name_list = required_parameters
     method_para_value_type_list = value_type
 
@@ -231,9 +234,9 @@ def show_problem_parameters(problem_name):
     problem_param_frame['text'] = f"{problem_name}"
 
     if problem_name[-8:] == 'co_bench':
-        yaml_file_path = f"../llm4ad/task/{objectives_var.get()}/co_bench/{problem_name}/paras.yaml"
+        yaml_file_path = ROOT_DIR / 'llm4ad' / 'task' / objectives_var.get() / 'co_bench' / problem_name / 'paras.yaml'
     else:
-        yaml_file_path = f"../llm4ad/task/{objectives_var.get()}/{problem_name}/paras.yaml"
+        yaml_file_path = ROOT_DIR / 'llm4ad' / 'task' / objectives_var.get() / problem_name / 'paras.yaml'
 
     required_parameters, value_type, default_value = get_required_parameters(path=yaml_file_path)
     problem_para_value_type_list = value_type
@@ -307,19 +310,19 @@ def problem_type_select(event=None):
 
     problem_listbox = tk.Listbox(problem_frame, height=6, bg='white', selectbackground='lightgray', font=('Comic Sans MS', 12))
     problem_listbox.pack(anchor=tk.NW, fill='both', expand=True, padx=5, pady=5)
-    path = f'../llm4ad/task/{objectives_var.get()}'
+    path = ROOT_DIR / 'llm4ad' / 'task' / objectives_var.get()
     for name in os.listdir(path):
-        full_path = os.path.join(path, name)
-        if os.path.isdir(full_path) and name != '__pycache__' and name != '_data' and name != 'co_bench':
+        full_path = path / name
+        if full_path.is_dir() and name != '__pycache__' and name != '_data' and name != 'co_bench':
             problem_listbox.insert(tk.END, name)
         if name in default_problem:
             default_problem_index = problem_listbox.size() - 1
 
     if objectives_var.get() == 'optimization':
-        path = f'../llm4ad/task/{objectives_var.get()}/co_bench'  # todo
+        path = ROOT_DIR / 'llm4ad' / 'task' / objectives_var.get() / 'co_bench'  # todo
         for name in os.listdir(path):
-            full_path = os.path.join(path, name)
-            if os.path.isdir(full_path) and name != '__pycache__' and name != '_data':
+            full_path = path / name
+            if full_path.is_dir() and name != '__pycache__' and name != '_data':
                 problem_listbox.insert(tk.END, name)
 
     problem_listbox.bind("<<ListboxSelect>>", on_problem_select)
@@ -654,20 +657,22 @@ if __name__ == '__main__':
     root.geometry("1500x900")
     root.protocol("WM_DELETE_WINDOW", exit_run)
 
-    root.iconbitmap('./image/icon.ico')
+    image_dir = Path(__file__).resolve().parent / 'image'
+    if sys.platform == 'win32':
+        root.iconbitmap(str(image_dir / 'icon.ico'))
 
     style = tkttk.Style()
     style.configure("TLabelframe.Label", font=('Helvetica', 15))
     style.configure("TLabel", font=('Comic Sans MS', 12))
     style.configure("TCombobox", font=('Comic Sans MS', 10))
 
-    photo_doc = tk.PhotoImage(file=r"./image/document.png")
+    photo_doc = tk.PhotoImage(file=str(image_dir / 'document.png'))
     photoimage_doc = photo_doc.subsample(10, 10)
-    photo_web = tk.PhotoImage(file=r"./image/website.png")
+    photo_web = tk.PhotoImage(file=str(image_dir / 'website.png'))
     photoimage_web = photo_web.subsample(10, 10)
-    photo_git = tk.PhotoImage(file=r"./image/github.png")
+    photo_git = tk.PhotoImage(file=str(image_dir / 'github.png'))
     photoimage_git = photo_git.subsample(10, 10)
-    photo_qq = tk.PhotoImage(file=r"./image/qq.png")
+    photo_qq = tk.PhotoImage(file=str(image_dir / 'qq.png'))
     photoimage_qq = photo_qq.subsample(10, 10)
 
     top_frame = ttk.Frame(root, height=30, bootstyle="info")
@@ -745,10 +750,10 @@ if __name__ == '__main__':
     algo_listbox = tk.Listbox(algo_frame, height=6, bg='white', selectbackground='lightgray', font=('Comic Sans MS', 12))
     algo_listbox.pack(anchor=tk.NW, fill='both', expand=True, padx=5, pady=5)
     default_method_index = None
-    path = '../llm4ad/method'
+    path = ROOT_DIR / 'llm4ad' / 'method'
     for name in os.listdir(path):
-        full_path = os.path.join(path, name)
-        if os.path.isdir(full_path) and name != '__pycache__':
+        full_path = path / name
+        if full_path.is_dir() and name != '__pycache__':
             algo_listbox.insert(tk.END, name)
         if name == default_method:
             default_method_index = algo_listbox.size() - 1
@@ -762,7 +767,7 @@ if __name__ == '__main__':
     objectives_frame = tk.Frame(problem_frame, bg='white')
     objectives_frame.pack(anchor=tk.NW, pady=5)
     radiobutton_list = []
-    for _, dict_name, _ in os.walk('../llm4ad/task'):
+    for _, dict_name, _ in os.walk(ROOT_DIR / 'llm4ad' / 'task'):
         for name in dict_name:
             if name != '__pycache__' and name != '_data':
                 radiobutton_list.append(name)
