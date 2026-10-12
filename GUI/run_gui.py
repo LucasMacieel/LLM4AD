@@ -33,6 +33,7 @@ import pytz
 import tkinter as tk
 from tkinter import ttk as tkttk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib import font_manager
 import matplotlib.pyplot as plt
 import numpy as np
 import json
@@ -42,6 +43,12 @@ from llm4ad.gui import main_gui
 import ttkbootstrap as ttk
 import subprocess
 import yaml
+
+PLOT_FONT_FAMILY = (
+    'Times New Roman'
+    if any(font.name == 'Times New Roman' for font in font_manager.fontManager.ttflist)
+    else 'DejaVu Serif'
+)
 
 ##########################################################
 
@@ -430,7 +437,7 @@ def init_fig(max_sample_nums):
         widget.destroy()
 
     font = {
-        'family': 'Times New Roman',
+        'family': PLOT_FONT_FAMILY,
         'size': 16
     }
 
@@ -524,7 +531,7 @@ def plot_fig(index, log_dir, max_sample_nums):
     # plot
 
     font = {
-        'family': 'Times New Roman',
+        'family': PLOT_FONT_FAMILY,
         'size': 16
     }
 
