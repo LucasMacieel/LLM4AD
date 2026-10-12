@@ -44,6 +44,6 @@ def determine_next_operation(
     return min(feasible_operations, key=lambda op: op[2])
 '''
 
-task_description = '''
+task_description = """
 Given jobs and machines, schedule jobs on machines to minimize the total makespan. Design an algorithm to select the next operation in each step.
-'''
+"""

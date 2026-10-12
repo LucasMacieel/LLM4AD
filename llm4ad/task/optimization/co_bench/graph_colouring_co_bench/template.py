@@ -27,10 +27,12 @@ def solve(n: int, edges: list, adjacency: dict) -> dict:
     return {}  # Replace {} with the actual solution dictionary when implemented.
 '''
 
-task_description = ("Given a graph in DIMACS format with vertices, edges, and an adjacency list, the goal is to "
-                    "assign a positive integer color (1..n) to each vertex while ensuring that no two adjacent "
-                    "vertices share the same color. The objective is to minimize the number of distinct colors used. "
-                    "If any two adjacent vertices have the same color, the solution is invalid and receives no score. "
-                    "Otherwise, the score is equal to the number of distinct colors used, with a lower score being "
-                    "better."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "Given a graph in DIMACS format with vertices, edges, and an adjacency list, the goal is to "
+    "assign a positive integer color (1..n) to each vertex while ensuring that no two adjacent "
+    "vertices share the same color. The objective is to minimize the number of distinct colors used. "
+    "If any two adjacent vertices have the same color, the solution is invalid and receives no score. "
+    "Otherwise, the score is equal to the number of distinct colors used, with a lower score being "
+    "better."
+    "Help me design a novel algorithm to solve this problem."
+)

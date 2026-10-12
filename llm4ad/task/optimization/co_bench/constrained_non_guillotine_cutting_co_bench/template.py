@@ -33,12 +33,14 @@ def solve(stock_length: int, stock_width: int, pieces: list) -> dict:
     return {'placements': []}
 '''
 
-task_description = ("The constrained non-guillotine cutting problem involves optimally arranging rectangular pieces "
-                    "onto a single rectangular stock with fixed dimensions (stock_length and stock_width). Each piece "
-                    "type has defined length, width, value, and minimum and maximum usage constraints. The "
-                    "optimization goal is to maximize the total value of all placed pieces, subject to constraints "
-                    "that each piece is entirely within stock boundaries, pieces do not overlap, each piece type’s "
-                    "usage falls within its specified [min, max] range, and pieces may optionally be rotated by 90°. "
-                    "The solution returns a set of placements indicating piece type, bottom-left coordinates (x, y), "
-                    "and rotation status. If any constraint is violated, the solution receives no score."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The constrained non-guillotine cutting problem involves optimally arranging rectangular pieces "
+    "onto a single rectangular stock with fixed dimensions (stock_length and stock_width). Each piece "
+    "type has defined length, width, value, and minimum and maximum usage constraints. The "
+    "optimization goal is to maximize the total value of all placed pieces, subject to constraints "
+    "that each piece is entirely within stock boundaries, pieces do not overlap, each piece type’s "
+    "usage falls within its specified [min, max] range, and pieces may optionally be rotated by 90°. "
+    "The solution returns a set of placements indicating piece type, bottom-left coordinates (x, y), "
+    "and rotation status. If any constraint is violated, the solution receives no score."
+    "Help me design a novel algorithm to solve this problem."
+)

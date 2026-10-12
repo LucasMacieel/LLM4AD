@@ -39,14 +39,16 @@ def solve(best_known: float, n: int, p: int, Q: float, customers: list) -> dict:
     }
 '''
 
-task_description = ("The Capacitated P-Median Problem is a facility location optimization problem where the objective "
-                    "is to select exactly  p  customers as medians (facility locations) and assign each customer to "
-                    "one of these medians to minimize the total cost, defined as the sum of the Euclidean distances ("
-                    "rounded down to the nearest integer) between customers and their assigned medians. Each median "
-                    "has a capacity constraint  Q , meaning the total demand of the customers assigned to it cannot "
-                    "exceed  Q . A feasible solution must respect this capacity constraint for all medians; "
-                    "otherwise, it receives a score of zero. The solution is evaluated by the ratio \\text{score} = "
-                    "\\frac{\\text{best\_known}}{\\text{computed\_total\_cost}} , where computed_total_cost is the total "
-                    "assignment cost if all constraints are satisfied; otherwise, the score is zero. The output "
-                    "consists of the total cost (if feasible), the selected medians, and the customer assignments."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The Capacitated P-Median Problem is a facility location optimization problem where the objective "
+    "is to select exactly  p  customers as medians (facility locations) and assign each customer to "
+    "one of these medians to minimize the total cost, defined as the sum of the Euclidean distances ("
+    "rounded down to the nearest integer) between customers and their assigned medians. Each median "
+    "has a capacity constraint  Q , meaning the total demand of the customers assigned to it cannot "
+    "exceed  Q . A feasible solution must respect this capacity constraint for all medians; "
+    "otherwise, it receives a score of zero. The solution is evaluated by the ratio \\text{score} = "
+    "\\frac{\\text{best\\_known}}{\\text{computed\\_total\\_cost}} , where computed_total_cost is the total "
+    "assignment cost if all constraints are satisfied; otherwise, the score is zero. The output "
+    "consists of the total cost (if feasible), the selected medians, and the customer assignments."
+    "Help me design a novel algorithm to solve this problem."
+)

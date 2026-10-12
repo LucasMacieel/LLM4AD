@@ -16,6 +16,7 @@ class ProgramsDatabaseConfig:
         cluster_sampling_temperature_period: Period of linear decay of the cluster
             sampling temperature.
     """
+
     functions_per_prompt: int = 2
     num_islands: int = 10
     reset_period: int = 4 * 60 * 60

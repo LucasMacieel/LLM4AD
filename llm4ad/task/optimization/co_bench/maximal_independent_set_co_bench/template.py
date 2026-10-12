@@ -22,8 +22,10 @@ def solve(graph: networkx.Graph):
     return solution
 '''
 
-task_description = ("The Maximum Independent Set (MIS) problem is a fundamental NP-hard optimization problem in graph "
-                    "theory. Given an undirected graph G = (V, E), where V is a set of vertices and E is a set of "
-                    "edges, the goal is to find the largest subset S ⊆ V such that no two vertices in S are adjacent "
-                    "(i.e., connected by an edge)."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The Maximum Independent Set (MIS) problem is a fundamental NP-hard optimization problem in graph "
+    "theory. Given an undirected graph G = (V, E), where V is a set of vertices and E is a set of "
+    "edges, the goal is to find the largest subset S ⊆ V such that no two vertices in S are adjacent "
+    "(i.e., connected by an edge)."
+    "Help me design a novel algorithm to solve this problem."
+)

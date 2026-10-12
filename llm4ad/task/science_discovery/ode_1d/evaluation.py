@@ -33,16 +33,20 @@
 
 from __future__ import annotations
 
-import re
 import itertools
+import re
 from typing import Any
+
 import numpy as np
 
 from llm4ad.base import Evaluation
-from llm4ad.task.science_discovery.ode_1d.template import template_program, task_description
-from llm4ad.task.science_discovery.ode_1d import strogatz_extended, strogatz_equations
+from llm4ad.task.science_discovery.ode_1d import strogatz_equations, strogatz_extended
+from llm4ad.task.science_discovery.ode_1d.template import (
+    task_description,
+    template_program,
+)
 
-__all__ = ['ODEEvaluation']
+__all__ = ["ODEEvaluation"]
 
 MAX_NPARAMS = 10
 params = [1.0] * MAX_NPARAMS
@@ -64,12 +68,12 @@ local_dict = {
 
 
 def evaluate(program_str: str, data: dict, equation: callable) -> float | None:
-    """ Evaluate the equation on data observations."""
+    """Evaluate the equation on data observations."""
 
     # Load data observations
-    xs = np.array(data['xs'])
-    ts = np.array(data['t'])
-    ys = np.array(list(itertools.chain(*data['ys'])))  # flatten to 1d
+    xs = np.array(data["xs"])
+    ts = np.array(data["t"])
+    ys = np.array(list(itertools.chain(*data["ys"])))  # flatten to 1d
     num_ini_x_values = len(xs)
     num_variables = len(xs[0])
 
@@ -81,7 +85,9 @@ def evaluate(program_str: str, data: dict, equation: callable) -> float | None:
         program_str = re.sub(r"def equation\(", r"def equation(t: float, ", program_str)
         local_vars = {"equation": equation}
         exec(program_str, globals(), local_vars)
-        equation = local_vars['equation']  # replace equation with str that after replacement of key parts
+        equation = local_vars[
+            "equation"
+        ]  # replace equation with str that after replacement of key parts
 
         # formula_sympy = equation(x0, constants)
         # diff_eq = sp.Eq(sp.diff(x0, t), formula_sympy)
@@ -95,13 +101,16 @@ def evaluate(program_str: str, data: dict, equation: callable) -> float | None:
         return None
 
     # Optimize parameters based on data
-    from scipy.optimize import minimize
     from scipy.integrate import solve_ivp
+    from scipy.optimize import minimize
+
     def loss(params):
         y_pred = np.zeros(num_ini_x_values * len(ts[0]))
         for i in range(num_ini_x_values):
-            s = solve_ivp(equation, (ts[i][0], ts[i][-1]), xs[i], args=(params,), t_eval=ts[i])
-            y_pred[i * len(ts[0]):(i + 1) * len(ts[0])] = s['y'][0]
+            s = solve_ivp(
+                equation, (ts[i][0], ts[i][-1]), xs[i], args=(params,), t_eval=ts[i]
+            )
+            y_pred[i * len(ts[0]) : (i + 1) * len(ts[0])] = s["y"][0]
         return np.mean((y_pred - ys) ** 2)
 
     # x0_funcs = []
@@ -113,7 +122,7 @@ def evaluate(program_str: str, data: dict, equation: callable) -> float | None:
     # x0_funcs.append(x0_func)
 
     loss_partial = lambda params: loss(params)
-    result = minimize(loss_partial, [1.0] * MAX_NPARAMS, method='BFGS')
+    result = minimize(loss_partial, [1.0] * MAX_NPARAMS, method="BFGS")
 
     # Return evaluation score
     optimized_params = result.x
@@ -126,7 +135,6 @@ def evaluate(program_str: str, data: dict, equation: callable) -> float | None:
 
 
 class ODEEvaluation(Evaluation):
-
     def __init__(self, timeout_seconds=60, test_id=1, **kwargs):
         """
         Args:
@@ -138,7 +146,7 @@ class ODEEvaluation(Evaluation):
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # read files
@@ -146,17 +154,14 @@ class ODEEvaluation(Evaluation):
         dataset = strogatz_extended.data
 
         dataset = dataset[test_id - 1]
-        xs = dataset['init']
-        t = [e['t'] for e in dataset['solutions'][0]]
-        ys = [e['y'][0] for e in dataset['solutions'][0]]  # for only 1 output
-        self._datasets = {
-            'xs': xs,
-            'ys': ys,
-            't': t
-        }
+        xs = dataset["init"]
+        t = [e["t"] for e in dataset["solutions"][0]]
+        ys = [e["y"][0] for e in dataset["solutions"][0]]  # for only 1 output
+        self._datasets = {"xs": xs, "ys": ys, "t": t}
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
         import inspect
+
         if not program_str:
             program_str = inspect.getsource(callable_func).lstrip()  # for testing
         # for np_func, sp_func in local_dict.items():  # replace key parts
@@ -164,9 +169,10 @@ class ODEEvaluation(Evaluation):
         return evaluate(program_str, self._datasets, callable_func)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+
     def equation(x: float, params: np.ndarray) -> float:
-        """ A ODE mathematical function
+        """A ODE mathematical function
         Args:
             x: the initial float value of the ode formula
             params: a 1-d Array of numeric constants or parameters to be optimized
@@ -177,7 +183,6 @@ if __name__ == '__main__':
         y = params[0] * np.sin(x) + params[1]
         return y
 
-
     evaluation = ODEEvaluation()
-    res = evaluation.evaluate_program('', equation)
+    res = evaluation.evaluate_program("", equation)
     print(res)

@@ -22,44 +22,49 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.packing_unequal_circles_area_co_bench.template import template_program, task_description
 
-__all__ = ['PUCAEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.packing_unequal_circles_area_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["PUCAEvaluationCB"]
 
 
 class PUCAEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
-        dataset = load_subdir_as_text("CO-Bench/CO-Bench", "Packing unequal circles area")
+        dataset = load_subdir_as_text(
+            "CO-Bench/CO-Bench", "Packing unequal circles area"
+        )
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +76,15 @@ class PUCAEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['n'], j['cx'], j['cy'], j['R'], j['radii'])
-                    fitness = self.eval_func(n=j['n'], cx=j['cx'], cy=j['cy'], R=j['R'], radii=j['radii'], coords=result['coords'])
+                    result = eva(j["n"], j["cx"], j["cy"], j["R"], j["radii"])
+                    fitness = self.eval_func(
+                        n=j["n"],
+                        cx=j["cx"],
+                        cy=j["cy"],
+                        R=j["R"],
+                        radii=j["radii"],
+                        coords=result["coords"],
+                    )
                     fitness_list.append(fitness)
 
             return np.mean(fitness_list)
@@ -104,7 +116,9 @@ class PUCAEvaluationCB(Evaluation):
         """
         cases = []
         try:
-            lines = [line.strip() for line in input_string.split('\n') if line.strip() != '']
+            lines = [
+                line.strip() for line in input_string.split("\n") if line.strip() != ""
+            ]
         except Exception as e:
             raise Exception(f"Error reading input file: {e}")
 
@@ -113,7 +127,9 @@ class PUCAEvaluationCB(Evaluation):
         while i < total_lines:
             header_tokens = lines[i].split()
             if len(header_tokens) != 4:
-                raise Exception(f"Header line at line {i + 1} must contain exactly 4 numbers: n cx cy R.")
+                raise Exception(
+                    f"Header line at line {i + 1} must contain exactly 4 numbers: n cx cy R."
+                )
             try:
                 n = int(header_tokens[0])
                 cx = float(header_tokens[1])
@@ -123,7 +139,9 @@ class PUCAEvaluationCB(Evaluation):
                 raise Exception(f"Error parsing header on line {i + 1}: {e}")
 
             if i + n >= total_lines:
-                raise Exception(f"Not enough lines for {n} circle radii after line {i + 1}.")
+                raise Exception(
+                    f"Not enough lines for {n} circle radii after line {i + 1}."
+                )
             radii = []
             for j in range(1, n + 1):
                 try:
@@ -131,7 +149,9 @@ class PUCAEvaluationCB(Evaluation):
                     r = float(lines[i + j].split()[0])
                     radii.append(r)
                 except Exception as e:
-                    raise Exception(f"Error parsing circle radius on line {i + j + 1}: {e}")
+                    raise Exception(
+                        f"Error parsing circle radius on line {i + j + 1}: {e}"
+                    )
             case = {"n": n, "cx": cx, "cy": cy, "R": R, "radii": radii}
             cases.append(case)
             i += n + 1  # Move to the next case header (if any)
@@ -201,13 +221,15 @@ class PUCAEvaluationCB(Evaluation):
             dist = math.hypot(x - cx, y - cy)
             clearance = container_R - (dist + r)
             if clearance < -tol:
-                raise Exception(f"Circle {i} violates container constraint by {-clearance}.")
+                raise Exception(
+                    f"Circle {i} violates container constraint by {-clearance}."
+                )
             container_clearances.append(clearance)
 
         # Evaluate non-overlap feasibility for every pair of packed circles.
         pair_clearances = []
         for idx, i in enumerate(packed_indices):
-            for j in packed_indices[idx + 1:]:
+            for j in packed_indices[idx + 1 :]:
                 x1, y1 = coords[i]
                 x2, y2 = coords[j]
                 center_distance = math.hypot(x1 - x2, y1 - y2)
@@ -250,12 +272,11 @@ class PUCAEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'circle1.txt': [], 'circle2.txt': [], 'circle3.txt': [], 'circle4.txt': []}
+        dev = {
+            "circle1.txt": [],
+            "circle2.txt": [],
+            "circle3.txt": [],
+            "circle4.txt": [],
+        }
 
         return dev
-
-
-
-
-
-

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 import re
-from typing import Tuple, List, Dict
+from typing import Tuple
 
-from .prompt import MEoHPrompt
-from ...base import LLM, SampleTrimmer, Function, Program
+from ...base import LLM, Function, Program, SampleTrimmer
 
 
 class MEoHSampler:
@@ -18,13 +17,15 @@ class MEoHSampler:
         code = SampleTrimmer.trim_preface_of_function(response)
         function = SampleTrimmer.sample_to_function(code, self._template_program)
         if function is not None:
-            function.entire_code = str(SampleTrimmer.sample_to_program(code, self._template_program))
+            function.entire_code = str(
+                SampleTrimmer.sample_to_program(code, self._template_program)
+            )
         return thought, function
 
     @classmethod
     def trim_thought_from_response(cls, response: str) -> str | None:
         try:
-            pattern = r'\{.*?\}'  # Compared with r'\{(.*)\}'
+            pattern = r"\{.*?\}"  # Compared with r'\{(.*)\}'
             bracketed_texts = re.findall(pattern, response)
             return bracketed_texts[0]
         except:

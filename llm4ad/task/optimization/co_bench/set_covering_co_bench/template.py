@@ -30,8 +30,10 @@ def solve(m: int, n: int, costs: list, row_cover: list) -> dict:
     return {"selected_columns": []}
 '''
 
-task_description = ("Set Covering Problem. The goal is to select a subset of columns, each with an associated cost, "
-                    "such that every row is covered by at least one chosen column. For each row, the available "
-                    "covering columns are provided (as 1-indexed numbers). The objective is to minimize the total "
-                    "cost of the selected columns, and if even one row is left uncovered, then no score is awarded."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "Set Covering Problem. The goal is to select a subset of columns, each with an associated cost, "
+    "such that every row is covered by at least one chosen column. For each row, the available "
+    "covering columns are provided (as 1-indexed numbers). The objective is to minimize the total "
+    "cost of the selected columns, and if even one row is left uncovered, then no score is awarded."
+    "Help me design a novel algorithm to solve this problem."
+)

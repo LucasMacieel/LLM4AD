@@ -1,12 +1,6 @@
-import numpy as np
-import pandas as pd
-import time
 import gymnasium as gym
-import tqdm
-import csv
-import os
-import pickle
-from queue import Queue
+import numpy as np
+
 
 def choose_action(pos: float, v: float, last_action: float) -> [float]:
     """Return the action for the car to proceed the next move.
@@ -39,7 +33,7 @@ def choose_action(pos: float, v: float, last_action: float) -> [float]:
 
 
 def run_test():
-    env = gym.make('MountainCarContinuous-v0', render_mode='human')
+    env = gym.make("MountainCarContinuous-v0", render_mode="human")
     observation, _ = env.reset()  # 状态包括以下因素
     action = 1
 
@@ -48,7 +42,9 @@ def run_test():
         action = choose_action(observation[0], observation[1], action)
         action = np.random.random()
         observation, reward, done, truncated, info = env.step([action])
-        print(f"step: {t}, action: {action}, reward: {reward}, done: {done}, truncated: {truncated}, info: {info}")
+        print(
+            f"step: {t}, action: {action}, reward: {reward}, done: {done}, truncated: {truncated}, info: {info}"
+        )
         # print(action, reward, done)
         # print(observation)
         env.render()
@@ -60,5 +56,5 @@ def run_test():
     env.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run_test()  # 训练结束后测试

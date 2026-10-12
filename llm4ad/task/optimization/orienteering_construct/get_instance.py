@@ -3,11 +3,11 @@ import numpy as np
 
 class GetData:
     def __init__(
-            self,
-            n_instance: int,
-            problem_size: int,
-            max_length_ratio: float = 0.35,
-            seed: int = 2024,
+        self,
+        n_instance: int,
+        problem_size: int,
+        max_length_ratio: float = 0.35,
+        seed: int = 2024,
     ):
         self.n_instance = int(n_instance)
         self.problem_size = int(problem_size)
@@ -32,13 +32,15 @@ class GetData:
 
             max_length = float(self.max_length_ratio * self.problem_size)
 
-            instance_data.append({
-                "coordinates": coordinates,
-                "distance_matrix": distances,
-                "prizes": prizes,
-                "start_node": 0,
-                "end_node": 0,
-                "max_length": max_length,
-            })
+            instance_data.append(
+                {
+                    "coordinates": coordinates,
+                    "distance_matrix": distances,
+                    "prizes": prizes,
+                    "start_node": 0,
+                    "end_node": 0,
+                    "max_length": max_length,
+                }
+            )
 
         return instance_data

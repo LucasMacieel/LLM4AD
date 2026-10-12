@@ -22,44 +22,49 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.generalised_assignment_problem_co_bench.template import template_program, task_description
 
-__all__ = ['GAPEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.generalised_assignment_problem_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["GAPEvaluationCB"]
 
 
 class GAPEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
-        dataset = load_subdir_as_text("CO-Bench/CO-Bench", "Generalised assignment problem")
+        dataset = load_subdir_as_text(
+            "CO-Bench/CO-Bench", "Generalised assignment problem"
+        )
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +76,22 @@ class GAPEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['m'], j['n'], j['cost_matrix'], j['consumption_matrix'], j['capacities'], j['problem_type'])
-                    fitness = self.eval_func(j['m'], j['n'], j['cost_matrix'], j['consumption_matrix'], j['capacities'], result['assignments'])
+                    result = eva(
+                        j["m"],
+                        j["n"],
+                        j["cost_matrix"],
+                        j["consumption_matrix"],
+                        j["capacities"],
+                        j["problem_type"],
+                    )
+                    fitness = self.eval_func(
+                        j["m"],
+                        j["n"],
+                        j["cost_matrix"],
+                        j["consumption_matrix"],
+                        j["capacities"],
+                        result["assignments"],
+                    )
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -136,7 +155,9 @@ class GAPEvaluationCB(Evaluation):
                     try:
                         row.append(float(tokens[ptr]))
                     except Exception as e:
-                        raise Exception("Error reading consumption matrix value: " + str(e))
+                        raise Exception(
+                            "Error reading consumption matrix value: " + str(e)
+                        )
                     ptr += 1
                 consumption_matrix.append(row)
 
@@ -149,21 +170,23 @@ class GAPEvaluationCB(Evaluation):
                 ptr += 1
             # Determine problem type based on content analysis or default to 'max'
             # Since we don't have file name, we'll default to 'max' for now
-            problem_type = 'max'
+            problem_type = "max"
 
             case = {
-                'm': m,
-                'n': n,
-                'cost_matrix': cost_matrix,
-                'consumption_matrix': consumption_matrix,
-                'capacities': capacities,
-                'problem_type': problem_type
+                "m": m,
+                "n": n,
+                "cost_matrix": cost_matrix,
+                "consumption_matrix": consumption_matrix,
+                "capacities": capacities,
+                "problem_type": problem_type,
             }
             cases.append(case)
 
         return cases
 
-    def eval_func(self, m, n, cost_matrix, consumption_matrix, capacities, assignments, **kwargs):
+    def eval_func(
+        self, m, n, cost_matrix, consumption_matrix, capacities, assignments, **kwargs
+    ):
         """
         Evaluate a solution for a single case of the Generalised Assignment Problem (GAP).
         Parameters:
@@ -188,14 +211,18 @@ class GAPEvaluationCB(Evaluation):
 
         # Check if the number of assignments matches the number of jobs.
         if len(assignments) != n:
-            raise ValueError("Malformed solution: number of assignments does not match the number of jobs.")
+            raise ValueError(
+                "Malformed solution: number of assignments does not match the number of jobs."
+            )
 
         # Process each job.
         for j in range(n):
             agent = assignments[j]
             # Check if the assigned agent is valid (using 1-indexing).
             if agent < 1 or agent > m:
-                raise ValueError(f"Invalid agent number {agent} for job {j}. Must be between 1 and {m}.")
+                raise ValueError(
+                    f"Invalid agent number {agent} for job {j}. Must be between 1 and {m}."
+                )
             agent_index = agent - 1
             total_cost += cost_matrix[agent_index][j]
             agent_consumption[agent_index] += consumption_matrix[agent_index][j]
@@ -204,7 +231,8 @@ class GAPEvaluationCB(Evaluation):
         for i in range(m):
             if agent_consumption[i] > capacities[i]:
                 raise ValueError(
-                    f"Capacity constraint violated for agent {i + 1}: consumption {agent_consumption[i]} exceeds capacity {capacities[i]}.")
+                    f"Capacity constraint violated for agent {i + 1}: consumption {agent_consumption[i]} exceeds capacity {capacities[i]}."
+                )
 
         # For a feasible solution, return the total cost as the score (for a maximization problem).
         return total_cost
@@ -237,13 +265,18 @@ class GAPEvaluationCB(Evaluation):
             optimal_list = optimal_scores[case]
             normed_scores = []
             # Compute normalized score for each index.
-            if 'gapa.txt' in case or 'gapb.txt' in case or 'gapc.txt' in case or 'gapd.txt' in case:
-                problem_type = 'min'
+            if (
+                "gapa.txt" in case
+                or "gapb.txt" in case
+                or "gapc.txt" in case
+                or "gapd.txt" in case
+            ):
+                problem_type = "min"
             else:
-                problem_type = 'max'
+                problem_type = "max"
             for idx, score in enumerate(scores):
                 if isinstance(score, (int, float)):
-                    if problem_type == 'min':
+                    if problem_type == "min":
                         normed_scores.append(optimal_list[idx] / score)
                     else:
                         normed_scores.append(score / optimal_list[idx])
@@ -254,14 +287,23 @@ class GAPEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'gap1.txt': [2, 3], 'gap10.txt': [2, 0], 'gap11.txt': [3, 0], 'gap12.txt': [3, 1], 'gap2.txt': [2, 1],
-               'gap3.txt': [2, 1], 'gap4.txt': [2, 0], 'gap5.txt': [1, 4], 'gap6.txt': [2, 0], 'gap7.txt': [4, 1],
-               'gap8.txt': [1, 4], 'gap9.txt': [1, 4], 'gapa.txt': [4, 0, 2], 'gapb.txt': [3, 2, 0],
-               'gapc.txt': [3, 2, 0],
-               'gapd.txt': [5, 4, 1]}
+        dev = {
+            "gap1.txt": [2, 3],
+            "gap10.txt": [2, 0],
+            "gap11.txt": [3, 0],
+            "gap12.txt": [3, 1],
+            "gap2.txt": [2, 1],
+            "gap3.txt": [2, 1],
+            "gap4.txt": [2, 0],
+            "gap5.txt": [1, 4],
+            "gap6.txt": [2, 0],
+            "gap7.txt": [4, 1],
+            "gap8.txt": [1, 4],
+            "gap9.txt": [1, 4],
+            "gapa.txt": [4, 0, 2],
+            "gapb.txt": [3, 2, 0],
+            "gapc.txt": [3, 2, 0],
+            "gapd.txt": [5, 4, 1],
+        }
 
         return dev
-
-
-
-

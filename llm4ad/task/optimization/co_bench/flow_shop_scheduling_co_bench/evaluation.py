@@ -22,33 +22,34 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.flow_shop_scheduling_co_bench.template import template_program, task_description
 
-__all__ = ['FSSEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.flow_shop_scheduling_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["FSSEvaluationCB"]
 
 
 class FSSEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
@@ -56,10 +57,12 @@ class FSSEvaluationCB(Evaluation):
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +74,15 @@ class FSSEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['n'], j['m'], j['matrix'])
-                    fitness = self.eval_func(n=j['n'], m=j['m'], matrix=j['matrix'], job_sequence=result['job_sequence'], lower_bound=j['lower_bound'], upper_bound=j['upper_bound'])
+                    result = eva(j["n"], j["m"], j["matrix"])
+                    fitness = self.eval_func(
+                        n=j["n"],
+                        m=j["m"],
+                        matrix=j["matrix"],
+                        job_sequence=result["job_sequence"],
+                        lower_bound=j["lower_bound"],
+                        upper_bound=j["upper_bound"],
+                    )
                     fitness_list.append(fitness)
 
             return np.mean(fitness_list)
@@ -97,7 +107,7 @@ class FSSEvaluationCB(Evaluation):
           - "lower_bound" (int)
         """
         test_cases = []
-        all_lines = [line.strip() for line in input_string.split('\n')]
+        all_lines = [line.strip() for line in input_string.split("\n")]
 
         i = 0
         while i < len(all_lines):
@@ -113,7 +123,9 @@ class FSSEvaluationCB(Evaluation):
                 # The header values line (n, m, seed, upper_bound, lower_bound)
                 header_tokens = all_lines[i].strip().split()
                 if len(header_tokens) < 5:
-                    raise ValueError(f"Expected at least 5 numbers in header, got: {all_lines[i].strip()}")
+                    raise ValueError(
+                        f"Expected at least 5 numbers in header, got: {all_lines[i].strip()}"
+                    )
                 n = int(header_tokens[0])
                 m = int(header_tokens[1])
                 # initial seed is ignored
@@ -125,7 +137,9 @@ class FSSEvaluationCB(Evaluation):
                 while i < len(all_lines) and all_lines[i].strip() == "":
                     i += 1
                 # Expect a line that starts with "processing times"
-                if i < len(all_lines) and all_lines[i].strip().lower().startswith("processing times"):
+                if i < len(all_lines) and all_lines[i].strip().lower().startswith(
+                    "processing times"
+                ):
                     i += 1
                 else:
                     raise ValueError("Expected 'processing times' line not found.")
@@ -136,27 +150,35 @@ class FSSEvaluationCB(Evaluation):
                     while i < len(all_lines) and all_lines[i].strip() == "":
                         i += 1
                     if i >= len(all_lines):
-                        raise ValueError("Unexpected end of file while reading processing times.")
+                        raise ValueError(
+                            "Unexpected end of file while reading processing times."
+                        )
                     row_tokens = all_lines[i].strip().split()
                     if len(row_tokens) != n:
                         raise ValueError(
-                            f"Expected {n} numbers in processing times line, got {len(row_tokens)} in line: {all_lines[i].strip()}")
+                            f"Expected {n} numbers in processing times line, got {len(row_tokens)} in line: {all_lines[i].strip()}"
+                        )
                     row = [int(token) for token in row_tokens]
                     machine_times.append(row)
                     i += 1
 
                 # The data is read per machine, so transpose it to obtain a list of n jobs,
                 # where each job is a list of m processing times.
-                matrix = [[machine_times[machine][job] for machine in range(m)] for job in range(n)]
+                matrix = [
+                    [machine_times[machine][job] for machine in range(m)]
+                    for job in range(n)
+                ]
 
                 # Add the test case dictionary.
-                test_cases.append({
-                    "n": n,
-                    "m": m,
-                    "matrix": matrix,
-                    "upper_bound": upper_bound,
-                    "lower_bound": lower_bound
-                })
+                test_cases.append(
+                    {
+                        "n": n,
+                        "m": m,
+                        "matrix": matrix,
+                        "upper_bound": upper_bound,
+                        "lower_bound": lower_bound,
+                    }
+                )
             else:
                 i += 1
 
@@ -269,14 +291,20 @@ class FSSEvaluationCB(Evaluation):
         Returns:
           float: The computed makespan for the provided solution.
         """
-        n = kwargs.get('n')
-        m = kwargs.get('m')
-        matrix = kwargs.get('matrix')
-        job_sequence = kwargs.get('job_sequence')
+        n = kwargs.get("n")
+        m = kwargs.get("m")
+        matrix = kwargs.get("matrix")
+        job_sequence = kwargs.get("job_sequence")
 
         # Validate the job sequence: it must be a permutation of [1, 2, ..., n]
-        if not job_sequence or len(job_sequence) != n or set(job_sequence) != set(range(1, n + 1)):
-            raise Exception(f"Error: Job sequence is not a valid permutation of job indices 1 to {n}.")
+        if (
+            not job_sequence
+            or len(job_sequence) != n
+            or set(job_sequence) != set(range(1, n + 1))
+        ):
+            raise Exception(
+                f"Error: Job sequence is not a valid permutation of job indices 1 to {n}."
+            )
 
         # Convert job sequence from 1-indexed to 0-indexed.
         seq_zero = [job - 1 for job in job_sequence]
@@ -294,22 +322,30 @@ class FSSEvaluationCB(Evaluation):
                 elif j == 0:
                     completion[i][j] = completion[i - 1][j] + proc_time
                 else:
-                    completion[i][j] = max(completion[i - 1][j], completion[i][j - 1]) + proc_time
+                    completion[i][j] = (
+                        max(completion[i - 1][j], completion[i][j - 1]) + proc_time
+                    )
 
         makespan = completion[-1][-1]
 
-        score = kwargs['lower_bound'] / makespan
+        score = kwargs["lower_bound"] / makespan
         # score = kwargs['upper_bound'] / makespan
         return score
 
     def get_dev(self):
-        dev = {'tai100_10.txt': [1, 7, 4, 9, 8], 'tai100_20.txt': [1, 0, 2, 6, 8], 'tai100_5.txt': [9, 8, 5, 6, 3],
-               'tai200_10.txt': [5, 9, 4, 1, 0], 'tai200_20.txt': [9, 4, 7, 6, 0], 'tai20_10.txt': [8, 9, 2, 5, 4],
-               'tai20_20.txt': [4, 8, 9, 7, 6], 'tai20_5.txt': [7, 3, 9, 8, 0], 'tai500_20.txt': [3, 0, 6, 7, 4],
-               'tai50_10.txt': [6, 4, 3, 8, 7], 'tai50_20.txt': [1, 7, 4, 6, 2], 'tai50_5.txt': [6, 7, 2, 4, 8]}
+        dev = {
+            "tai100_10.txt": [1, 7, 4, 9, 8],
+            "tai100_20.txt": [1, 0, 2, 6, 8],
+            "tai100_5.txt": [9, 8, 5, 6, 3],
+            "tai200_10.txt": [5, 9, 4, 1, 0],
+            "tai200_20.txt": [9, 4, 7, 6, 0],
+            "tai20_10.txt": [8, 9, 2, 5, 4],
+            "tai20_20.txt": [4, 8, 9, 7, 6],
+            "tai20_5.txt": [7, 3, 9, 8, 0],
+            "tai500_20.txt": [3, 0, 6, 7, 4],
+            "tai50_10.txt": [6, 4, 3, 8, 7],
+            "tai50_20.txt": [1, 7, 4, 6, 2],
+            "tai50_5.txt": [6, 7, 2, 4, 8],
+        }
 
         return dev
-
-
-
-

@@ -1,30 +1,33 @@
 from __future__ import annotations
 
-from ...tools.llm.llm_api_https import HttpsApi
-
 import logging
 import re
-from abc import abstractmethod
+
 from llamea.solution import Solution
 from llamea.utils import NoCodeException, apply_code_delta
+
+from ...tools.llm.llm_api_https import HttpsApi
 
 try:
     from ConfigSpace import ConfigurationSpace
 except ModuleNotFoundError:  # pragma: no cover - optional dependency
     ConfigurationSpace = None
 
+
 class LlameaLLM(HttpsApi):
-    def __init__(self,
-                 host,
-                 key,
-                 model,
-                 timeout=60,
-                 code_pattern=None,
-                 name_pattern=None,
-                 desc_pattern=None,
-                 cs_pattern=None,
-                 logger=None,
-                 **kwargs):
+    def __init__(
+        self,
+        host,
+        key,
+        model,
+        timeout=60,
+        code_pattern=None,
+        name_pattern=None,
+        desc_pattern=None,
+        cs_pattern=None,
+        logger=None,
+        **kwargs,
+    ):
         """Https API
         Args:
             host   : host name. please note that the host name does not include 'https://'

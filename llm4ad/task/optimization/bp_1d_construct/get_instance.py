@@ -34,7 +34,11 @@ class GetData:
 
             # Generate random item weights using a beta distribution
             # Scale and shift the values to the range [5, 50]
-            item_weights = (50 - np.random.beta(alpha, beta, size=self.n_items) * 40).astype(int).tolist()
+            item_weights = (
+                (50 - np.random.beta(alpha, beta, size=self.n_items) * 40)
+                .astype(int)
+                .tolist()
+            )
             # # Generate random item weights, ensuring no item exceeds the bin capacity
             # item_weights = np.random.randint(2, 9, size=self.n_items).tolist()
 
@@ -47,6 +51,7 @@ class GetData:
             instance_data.append((item_weights, self.bin_capacity))
 
         return instance_data
+
 
 # # Example usage:
 # data_generator = GetData(n_instance=5, n_items=10, bin_capacity=100)

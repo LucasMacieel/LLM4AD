@@ -22,44 +22,49 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.capacitated_warehouse_location_co_bench.template import template_program, task_description
 
-__all__ = ['CWLEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.capacitated_warehouse_location_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["CWLEvaluationCB"]
 
 
 class CWLEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face with fallback
-        dataset = load_subdir_as_text("CO-Bench/CO-Bench", "Capacitated warehouse location")
+        dataset = load_subdir_as_text(
+            "CO-Bench/CO-Bench", "Capacitated warehouse location"
+        )
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +76,15 @@ class CWLEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['m'], j['n'], j['warehouses'], j['customers'])
-                    fitness = self.eval_func(j['m'], j['n'], j['warehouses'], j['customers'], result['warehouse_open'], result['assignments'])
+                    result = eva(j["m"], j["n"], j["warehouses"], j["customers"])
+                    fitness = self.eval_func(
+                        j["m"],
+                        j["n"],
+                        j["warehouses"],
+                        j["customers"],
+                        result["warehouse_open"],
+                        result["assignments"],
+                    )
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -98,7 +110,7 @@ class CWLEvaluationCB(Evaluation):
              - 'customers': List of dictionaries; each with keys 'demand' and 'costs' (list of floats)
         """
         try:
-            all_lines = [line.strip() for line in input_string.split('\n')]
+            all_lines = [line.strip() for line in input_string.split("\n")]
         except Exception as e:
             raise ValueError("Error reading input string: " + str(e))
 
@@ -135,7 +147,7 @@ class CWLEvaluationCB(Evaluation):
                     fixed_cost = float(tokens[index + 1])
                 except Exception as e:
                     raise ValueError("Error parsing warehouse data: " + str(e))
-                warehouses.append({'capacity': capacity, 'fixed_cost': fixed_cost})
+                warehouses.append({"capacity": capacity, "fixed_cost": fixed_cost})
                 index += 2
 
             # Parse customer data (n customers, each with 1 demand and m cost values).
@@ -146,26 +158,40 @@ class CWLEvaluationCB(Evaluation):
                 try:
                     demand = float(tokens[index])
                 except Exception as e:
-                    raise ValueError(f"Error parsing demand for customer {j + 1}: " + str(e))
+                    raise ValueError(
+                        f"Error parsing demand for customer {j + 1}: " + str(e)
+                    )
                 index += 1
                 if index + m - 1 >= total_tokens:
-                    raise ValueError(f"Not enough tokens for cost data for customer {j + 1}.")
+                    raise ValueError(
+                        f"Not enough tokens for cost data for customer {j + 1}."
+                    )
                 costs = []
                 for i in range(m):
                     try:
                         cost = float(tokens[index])
                     except Exception as e:
-                        raise ValueError(f"Error parsing cost for customer {j + 1}, warehouse {i + 1}: " + str(e))
+                        raise ValueError(
+                            f"Error parsing cost for customer {j + 1}, warehouse {i + 1}: "
+                            + str(e)
+                        )
                     costs.append(cost)
                     index += 1
-                customers.append({'demand': demand, 'costs': costs})
+                customers.append({"demand": demand, "costs": costs})
 
-            case_data = {"m": m, "n": n, "warehouses": warehouses, "customers": customers}
+            case_data = {
+                "m": m,
+                "n": n,
+                "warehouses": warehouses,
+                "customers": customers,
+            }
             cases.append(case_data)
 
         return cases
 
-    def eval_func(self, m, n, warehouses, customers, warehouse_open, assignments, **kwargs):
+    def eval_func(
+        self, m, n, warehouses, customers, warehouse_open, assignments, **kwargs
+    ):
         """
         Evaluates the solution for the Capacitated Warehouse Location Problem with Splittable Customer Demand,
         using a weighted average cost for each customer.
@@ -201,11 +227,11 @@ class CWLEvaluationCB(Evaluation):
         # Add fixed costs for open warehouses.
         for i in range(m):
             if warehouse_open[i] == 1:
-                computed_total_cost += warehouses[i]['fixed_cost']
+                computed_total_cost += warehouses[i]["fixed_cost"]
 
         # Evaluate assignment cost for each customer as a weighted average.
         for j in range(n):
-            customer_demand = customers[j]['demand']
+            customer_demand = customers[j]["demand"]
             allocated_amount = sum(assignments[j])
             if abs(allocated_amount - customer_demand) > 1e-6:
                 raise Exception(
@@ -224,7 +250,7 @@ class CWLEvaluationCB(Evaluation):
                     )
                 # Compute fraction of the customer's demand supplied from warehouse i.
                 fraction = allocation / customer_demand if customer_demand > 0 else 0.0
-                weighted_cost += fraction * customers[j]['costs'][i]
+                weighted_cost += fraction * customers[j]["costs"][i]
             # Add the weighted cost (applied once per customer).
             computed_total_cost += weighted_cost
 
@@ -234,8 +260,8 @@ class CWLEvaluationCB(Evaluation):
             for j in range(n):
                 assigned_demand[i] += assignments[j][i]
         for i in range(m):
-            if assigned_demand[i] > warehouses[i]['capacity'] + 1e-6:
-                excess = assigned_demand[i] - warehouses[i]['capacity']
+            if assigned_demand[i] > warehouses[i]["capacity"] + 1e-6:
+                excess = assigned_demand[i] - warehouses[i]["capacity"]
                 raise Exception(
                     f"Warehouse {i + 1} exceeds its capacity by {excess} units."
                 )
@@ -292,7 +318,7 @@ class CWLEvaluationCB(Evaluation):
             "capc-5000.txt": [11646596.974],
             "capc-5750.txt": [11570340.289],
             "capc-6500.txt": [11518743.744],
-            "capc-7250.txt": [11505767.394]
+            "capc-7250.txt": [11505767.394],
         }
 
         normed = {}
@@ -312,14 +338,19 @@ class CWLEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'cap101.txt': [], 'cap112.txt': [],
-               'cap123.txt': [],
-               'cap134.txt': [],
-               'cap41.txt': [], 'cap62.txt': [], 'cap73.txt': [], 'cap84.txt': [],
-               'cap91.txt': [],
-               'capa-12000.txt': [],
-               'capb-5000.txt': [],
-               'capc-7250.txt': []}
+        dev = {
+            "cap101.txt": [],
+            "cap112.txt": [],
+            "cap123.txt": [],
+            "cap134.txt": [],
+            "cap41.txt": [],
+            "cap62.txt": [],
+            "cap73.txt": [],
+            "cap84.txt": [],
+            "cap91.txt": [],
+            "capa-12000.txt": [],
+            "capb-5000.txt": [],
+            "capc-7250.txt": [],
+        }
 
         return dev
-

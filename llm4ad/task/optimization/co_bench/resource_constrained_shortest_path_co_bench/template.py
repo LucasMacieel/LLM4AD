@@ -33,14 +33,16 @@ def solve(n:int, m:int, K:int, lower_bounds:list, upper_bounds:list, vertex_reso
     return {"total_cost": 0.0, "path": [1, n]}
 '''
 
-task_description = ("This problem involves finding the shortest path from vertex 1 to vertex n in a directed graph "
-                    "while satisfying resource constraints. Specifically, each vertex and arc has associated resource "
-                    "consumptions, and the cumulative consumption for each resource must fall within the provided "
-                    "lower_bounds and upper_bounds. The input includes the number of vertices (n), arcs (m), "
-                    "resource types (K), resource consumption at each vertex, and a graph represented as a mapping "
-                    "from vertices to lists of arcs (each arc being a tuple of end vertex, cost, and arc resource "
-                    "consumptions). The optimization objective is to minimize the total arc cost of the path, "
-                    "with the condition that the path is valid—meaning it starts at vertex 1, ends at vertex n, "
-                    "follows defined transitions in the graph, and respects all resource bounds; if any of these "
-                    "constraints are not met, the solution receives no score."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "This problem involves finding the shortest path from vertex 1 to vertex n in a directed graph "
+    "while satisfying resource constraints. Specifically, each vertex and arc has associated resource "
+    "consumptions, and the cumulative consumption for each resource must fall within the provided "
+    "lower_bounds and upper_bounds. The input includes the number of vertices (n), arcs (m), "
+    "resource types (K), resource consumption at each vertex, and a graph represented as a mapping "
+    "from vertices to lists of arcs (each arc being a tuple of end vertex, cost, and arc resource "
+    "consumptions). The optimization objective is to minimize the total arc cost of the path, "
+    "with the condition that the path is valid—meaning it starts at vertex 1, ends at vertex n, "
+    "follows defined transitions in the graph, and respects all resource bounds; if any of these "
+    "constraints are not met, the solution receives no score."
+    "Help me design a novel algorithm to solve this problem."
+)

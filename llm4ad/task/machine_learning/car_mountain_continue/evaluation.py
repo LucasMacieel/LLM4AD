@@ -33,13 +33,16 @@
 from __future__ import annotations
 
 from typing import Any
+
 import gymnasium as gym
 
 from llm4ad.base import Evaluation
-from llm4ad.task.machine_learning.car_mountain_continue.template import template_program, task_description
+from llm4ad.task.machine_learning.car_mountain_continue.template import (
+    task_description,
+    template_program,
+)
 
-
-__all__ = ['CarMountainCEvaluation']
+__all__ = ["CarMountainCEvaluation"]
 
 
 def evaluate(env: gym.Env, action_select: callable) -> float:
@@ -60,29 +63,28 @@ def evaluate(env: gym.Env, action_select: callable) -> float:
             return -(max(0.5 - observation[0], 0) + 1)  # failed
 
 
-
 class CarMountainCEvaluation(Evaluation):
     """Evaluator for car mountain problem."""
 
     def __init__(self, max_steps=500, timeout_seconds=20, **kwargs):
         """
-            Args:
-                - 'max_steps' (int): Maximum number of steps allowed per episode in the MountainCar-v0 environment (default is 500).
-                - '**kwargs' (dict): Additional keyword arguments passed to the parent class initializer.
+        Args:
+            - 'max_steps' (int): Maximum number of steps allowed per episode in the MountainCar-v0 environment (default is 500).
+            - '**kwargs' (dict): Additional keyword arguments passed to the parent class initializer.
 
-            Attributes:
-                - 'env' (gym.Env): The MountainCar-v0 environment with a modified maximum episode length.
+        Attributes:
+            - 'env' (gym.Env): The MountainCar-v0 environment with a modified maximum episode length.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         self.env = None
-        self.env = gym.make('MountainCarContinuous-v0')
+        self.env = gym.make("MountainCarContinuous-v0")
         self.env._max_episode_steps = max_steps
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:

@@ -29,12 +29,14 @@ def solve(problem_index: int, container: tuple, box_types: dict) -> dict:
     return {'placements': []}
 '''
 
-task_description = ("Solves a container loading problem: Given a 3D container of specified dimensions and multiple "
-                    "box types—each defined by dimensions, orientation constraints, and available quantity—the goal "
-                    "is to optimally place these boxes within the container to maximize the volume utilization ratio. "
-                    "Each box placement must respect orientation constraints (vertical alignment flags), fit entirely "
-                    "within container boundaries, and avoid overlaps. The solution returns precise coordinates and "
-                    "orientations for each box placement, quantified by a volume utilization score calculated as the "
-                    "total volume of placed boxes divided by the container volume. Invalid placements result in a "
-                    "score of 0.0."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "Solves a container loading problem: Given a 3D container of specified dimensions and multiple "
+    "box types—each defined by dimensions, orientation constraints, and available quantity—the goal "
+    "is to optimally place these boxes within the container to maximize the volume utilization ratio. "
+    "Each box placement must respect orientation constraints (vertical alignment flags), fit entirely "
+    "within container boundaries, and avoid overlaps. The solution returns precise coordinates and "
+    "orientations for each box placement, quantified by a volume utilization score calculated as the "
+    "total volume of placed boxes divided by the container volume. Invalid placements result in a "
+    "score of 0.0."
+    "Help me design a novel algorithm to solve this problem."
+)

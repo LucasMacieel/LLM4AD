@@ -1,33 +1,30 @@
-import copy
-import pickle
-import random
-import socket
-from queue import Queue
-from typing import List, Any, Dict
-import requests
-
-from ....base import LLM
+import json
+import os
 import subprocess
 import sys
 import time
-import os
+from queue import Queue
 from typing import List
-import numpy as np
-import json
+
+import requests
+
+from ....base import LLM
 
 
 class VLLMManager:
     def __init__(self):
         self.processes = []
 
-    def deploy_models(self,
-                      model_path: str,
-                      tknz_path: str,
-                      gpus: List[int],
-                      ports: List[int],
-                      gpu_mem_utils: float | List[float] = None):
+    def deploy_models(
+        self,
+        model_path: str,
+        tknz_path: str,
+        gpus: List[int],
+        ports: List[int],
+        gpu_mem_utils: float | List[float] = None,
+    ):
         if len(gpus) != len(ports):
-            raise ValueError('len(gpus) != len(ports)')
+            raise ValueError("len(gpus) != len(ports)")
 
         if gpu_mem_utils is None:
             gpu_mem_utils = [0.85] * len(ports)
@@ -38,31 +35,36 @@ class VLLMManager:
         for gpu, port, mem_util in zip(gpus, ports, gpu_mem_utils):
             cmd = [
                 executable_path,
-                os.path.join(os.path.dirname(__file__), 'vllm_llama.py'),
-                '--d', str(gpu),
-                '--path', model_path,
-                '--tknz_path', tknz_path,
-                '--port', str(port),
-                '--gpu_memory_utilization', str(mem_util),
+                os.path.join(os.path.dirname(__file__), "vllm_llama.py"),
+                "--d",
+                str(gpu),
+                "--path",
+                model_path,
+                "--tknz_path",
+                tknz_path,
+                "--port",
+                str(port),
+                "--gpu_memory_utilization",
+                str(mem_util),
             ]
             # start subprocess
             process = subprocess.Popen(cmd)
             self.processes.append(process)
-            print(f'Start LLM service on GPU: {gpu}, port: {port}, PID: {process.pid}.')
+            print(f"Start LLM service on GPU: {gpu}, port: {port}, PID: {process.pid}.")
             time.sleep(2)
-        print('Start all LLM service.')
+        print("Start all LLM service.")
 
     def release_resources_(self):
         for process in self.processes:
             try:
                 process.terminate()
                 process.wait(timeout=5)
-                print(f'Terminate process: {process.pid}')
+                print(f"Terminate process: {process.pid}")
             except subprocess.TimeoutExpired:
                 process.kill()
-                print(f'Kill process: {process.pid}')
+                print(f"Kill process: {process.pid}")
         self.processes = []
-        print('Release all resources.')
+        print("Release all resources.")
 
     def release_resources(self):
         # Kill all child processes first
@@ -71,6 +73,7 @@ class VLLMManager:
                 # Get child processes before terminating parent
                 try:
                     import psutil
+
                     parent = psutil.Process(process.pid)
                     children = parent.children(recursive=True)
                 except (ImportError, psutil.NoSuchProcess):
@@ -79,7 +82,7 @@ class VLLMManager:
                 # Terminate parent process
                 process.terminate()
                 process.wait(timeout=5)
-                print(f'Terminated process: {process.pid}')
+                print(f"Terminated process: {process.pid}")
 
                 # Kill any remaining children
                 for child in children:
@@ -94,29 +97,27 @@ class VLLMManager:
 
             except subprocess.TimeoutExpired:
                 process.kill()
-                print(f'Killed process: {process.pid}')
+                print(f"Killed process: {process.pid}")
 
         self.processes = []
 
         # Force GPU memory cleanup
         try:
             import torch
+
             if torch.cuda.is_available():
                 torch.cuda.empty_cache()
-                print('Cleared CUDA cache')
+                print("Cleared CUDA cache")
         except ImportError:
             pass
 
-        print('Released all resources.')
+        print("Released all resources.")
 
 
 class LocalVLLMAPI(LLM):
-    def __init__(self,
-                 model_path,
-                 tknz_path,
-                 gpus: List[int],
-                 ports: List[int],
-                 **kwargs):
+    def __init__(
+        self, model_path, tknz_path, gpus: List[int], ports: List[int], **kwargs
+    ):
         """Deploy multiple LLMs on multiple GPUs using VLLM backends.
         Currently only support deploying each LLM on single GPU.
 
@@ -139,7 +140,7 @@ class LocalVLLMAPI(LLM):
         while True:
             port = self.available_ports.get()
             try:
-                url = f'http://127.0.0.1:{port}/completions'
+                url = f"http://127.0.0.1:{port}/completions"
                 response = self._do_request(prompt, url)
                 return response
             except:
@@ -148,17 +149,12 @@ class LocalVLLMAPI(LLM):
                 self.available_ports.put(port)
 
     def _do_request(self, content: str, url: str) -> str:
-        content = content.strip('\n').strip()
-        data = {
-            'prompt': content,
-            'params': {
-                'max_new_tokens': 4096
-            }
-        }
-        headers = {'Content-Type': 'application/json'}
+        content = content.strip("\n").strip()
+        data = {"prompt": content, "params": {"max_new_tokens": 4096}}
+        headers = {"Content-Type": "application/json"}
         response = requests.post(url, data=json.dumps(data), headers=headers)
         if response.status_code == 200:
-            response = response.json()['content']
+            response = response.json()["content"]
             return response[0]
 
     def __del__(self):
@@ -166,6 +162,3 @@ class LocalVLLMAPI(LLM):
 
     def close(self):
         self.vllm.release_resources()
-
-
-

@@ -22,33 +22,34 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.open_shop_scheduling_co_bench.template import template_program, task_description
 
-__all__ = ['OSSEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.open_shop_scheduling_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["OSSEvaluationCB"]
 
 
 class OSSEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
@@ -56,10 +57,12 @@ class OSSEvaluationCB(Evaluation):
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +74,18 @@ class OSSEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['n_jobs'], j['n_machines'], j['times'], j['machines'])
-                    fitness = self.eval_func(j['n_jobs'], j['n_machines'], j['times'], j['machines'], result['start_times'], lower_bound=j['lower_bound'], upper_bound=j['upper_bound'])
+                    result = eva(
+                        j["n_jobs"], j["n_machines"], j["times"], j["machines"]
+                    )
+                    fitness = self.eval_func(
+                        j["n_jobs"],
+                        j["n_machines"],
+                        j["times"],
+                        j["machines"],
+                        result["start_times"],
+                        lower_bound=j["lower_bound"],
+                        upper_bound=j["upper_bound"],
+                    )
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -83,7 +96,9 @@ class OSSEvaluationCB(Evaluation):
 
     def load_data(self, input_string):
         cases = []
-        lines = [line.strip() for line in input_string.split('\n') if line.strip()]  # remove blank lines
+        lines = [
+            line.strip() for line in input_string.split("\n") if line.strip()
+        ]  # remove blank lines
 
         i = 0
         while i < len(lines):
@@ -111,19 +126,26 @@ class OSSEvaluationCB(Evaluation):
                     # Each line should contain n_machines numbers
                     time_line = list(map(int, lines[i].split()))
                     if len(time_line) != n_machines:
-                        raise ValueError(f"Expected {n_machines} numbers in times row, got {len(time_line)}")
+                        raise ValueError(
+                            f"Expected {n_machines} numbers in times row, got {len(time_line)}"
+                        )
                     times.append(time_line)
                     i += 1
 
                 # Find the "Machines" section
                 if i >= len(lines) or not lines[i].lower().startswith("machines"):
-                    raise ValueError("Expected 'Machines' section, got: " + (lines[i] if i < len(lines) else "EOF"))
+                    raise ValueError(
+                        "Expected 'Machines' section, got: "
+                        + (lines[i] if i < len(lines) else "EOF")
+                    )
                 i += 1  # move to first line of machines
                 machines = []
                 for _ in range(n_jobs):
                     machine_line = list(map(int, lines[i].split()))
                     if len(machine_line) != n_machines:
-                        raise ValueError(f"Expected {n_machines} numbers in machines row, got {len(machine_line)}")
+                        raise ValueError(
+                            f"Expected {n_machines} numbers in machines row, got {len(machine_line)}"
+                        )
                     machines.append(machine_line)
                     i += 1
 
@@ -136,7 +158,7 @@ class OSSEvaluationCB(Evaluation):
                     "upper_bound": upper_bound,
                     "lower_bound": lower_bound,
                     "times": times,
-                    "machines": machines
+                    "machines": machines,
                 }
                 cases.append(case)
             else:
@@ -166,10 +188,14 @@ class OSSEvaluationCB(Evaluation):
 
         # Check that start_times dimensions match the problem dimensions.
         if len(start_times) != n_jobs:
-            raise ValueError(f"Expected start_times to have {n_jobs} rows, got {len(start_times)}")
+            raise ValueError(
+                f"Expected start_times to have {n_jobs} rows, got {len(start_times)}"
+            )
         for i, row in enumerate(start_times):
             if len(row) != n_machines:
-                raise ValueError(f"Expected start_times row {i} to have {n_machines} entries, got {len(row)}")
+                raise ValueError(
+                    f"Expected start_times row {i} to have {n_machines} entries, got {len(row)}"
+                )
             for t in row:
                 if t < 0:
                     raise ValueError("Start times must be non-negative.")
@@ -187,10 +213,16 @@ class OSSEvaluationCB(Evaluation):
             job_completion_times.append(finish_time)
 
         for job_id in range(n_jobs):
-            ops = sorted(job_operations[job_id], key=lambda x: x[0])  # Sort by start time
+            ops = sorted(
+                job_operations[job_id], key=lambda x: x[0]
+            )  # Sort by start time
             for i in range(len(ops) - 1):
-                if ops[i][1] > ops[i + 1][0]:  # End time of current > start time of next
-                    raise ValueError(f"Overlapping operations for job {job_id}: {ops[i]} and {ops[i + 1]}")
+                if (
+                    ops[i][1] > ops[i + 1][0]
+                ):  # End time of current > start time of next
+                    raise ValueError(
+                        f"Overlapping operations for job {job_id}: {ops[i]} and {ops[i + 1]}"
+                    )
 
         # Constraint: Machine non-overlap.
         # Build a dictionary mapping machine id to a list of (start_time, finish_time, job, op_index)
@@ -213,22 +245,24 @@ class OSSEvaluationCB(Evaluation):
                 curr_st, curr_finish, curr_job, curr_op = ops_sorted[k]
                 if prev_finish > curr_st:
                     raise ValueError(
-                        f"Machine {machine_id}: Operation from job {prev_job}, op {prev_op} (finishing at {prev_finish}) overlaps with job {curr_job}, op {curr_op} (starting at {curr_st}).")
+                        f"Machine {machine_id}: Operation from job {prev_job}, op {prev_op} (finishing at {prev_finish}) overlaps with job {curr_job}, op {curr_op} (starting at {curr_st})."
+                    )
 
         # Compute the makespan as the maximum completion time among all jobs.
         makespan = max(job_completion_times)
 
-        score = kwargs['lower_bound'] / makespan
+        score = kwargs["lower_bound"] / makespan
 
         return score
 
     def get_dev(self):
-        dev = {'tai10_10.txt': [7, 8, 3, 9, 2], 'tai15_15.txt': [7, 0, 8, 4, 5], 'tai20_20.txt': [6, 0, 3, 8, 2],
-               'tai4_4.txt': [0, 7, 5, 8, 6], 'tai5_5.txt': [3, 0, 9, 8, 1], 'tai7_7.txt': [3, 0, 8, 2, 1]}
+        dev = {
+            "tai10_10.txt": [7, 8, 3, 9, 2],
+            "tai15_15.txt": [7, 0, 8, 4, 5],
+            "tai20_20.txt": [6, 0, 3, 8, 2],
+            "tai4_4.txt": [0, 7, 5, 8, 6],
+            "tai5_5.txt": [3, 0, 9, 8, 1],
+            "tai7_7.txt": [3, 0, 8, 2, 1],
+        }
 
         return dev
-
-
-
-
-

@@ -25,14 +25,16 @@ def solve(n: int, m: int, p: int, dist: list) -> dict:
     return {"medians": []}
 '''
 
-task_description = ("The uncapacitated p-median problem is a combinatorial optimization problem defined on a given "
-                    "graph  G = (V, E)  with  n  vertices and  m  edges. The objective is to select  p  medians ("
-                    "facility locations) from the set of vertices such that the total assignment cost is minimized. "
-                    "The assignment cost is computed as the sum of the shortest distances from each vertex to its "
-                    "nearest selected median, where distances are given by a precomputed complete cost matrix ("
-                    "obtained via Floyd’s algorithm). Formally, given the cost matrix  D \in \mathbb{R}^{n \times n} "
-                    ", the optimization problem seeks to find a subset  S \subseteq V  with  |S| = p  that minimizes "
-                    "the function: \sum_{v \in V} \min_{s \in S} D(v, s) where  D(v, s)  is the shortest-path "
-                    "distance between vertex  v  and median  s . The solution consists of a list of exactly  p  "
-                    "distinct vertices representing the chosen medians."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The uncapacitated p-median problem is a combinatorial optimization problem defined on a given "
+    "graph  G = (V, E)  with  n  vertices and  m  edges. The objective is to select  p  medians ("
+    "facility locations) from the set of vertices such that the total assignment cost is minimized. "
+    "The assignment cost is computed as the sum of the shortest distances from each vertex to its "
+    "nearest selected median, where distances are given by a precomputed complete cost matrix ("
+    "obtained via Floyd’s algorithm). Formally, given the cost matrix  D \\in \\mathbb{R}^{n \times n} "
+    ", the optimization problem seeks to find a subset  S \\subseteq V  with  |S| = p  that minimizes "
+    "the function: \\sum_{v \\in V} \\min_{s \\in S} D(v, s) where  D(v, s)  is the shortest-path "
+    "distance between vertex  v  and median  s . The solution consists of a list of exactly  p  "
+    "distinct vertices representing the chosen medians."
+    "Help me design a novel algorithm to solve this problem."
+)

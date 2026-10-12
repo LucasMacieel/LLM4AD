@@ -23,7 +23,7 @@ def determine_next_assignment(remaining_items: List[int], remaining_capacities: 
     return remaining_items[0], None  # If no feasible bin is found, return the first item and no bin
 '''
 
-task_description = '''
+task_description = """
 Given a set of bins and items, iteratively assign one item to feasible bins.
 Design a constructive heuristic used in each iteration, with the objective of minimizing the used bins.
-'''
+"""

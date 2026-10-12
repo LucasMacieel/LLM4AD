@@ -1,6 +1,6 @@
-import os
 import importlib
 import inspect
+import os
 
 __all__ = []
 
@@ -10,16 +10,16 @@ package_dir = os.path.dirname(__file__)
 # Iterate over all files in the package directory
 for filename in os.listdir(package_dir):
     # Check if it is a Python file and not the __init__.py file
-    if filename.endswith('.py') and filename != '__init__.py':
+    if filename.endswith(".py") and filename != "__init__.py":
         module_name = filename[:-3]
         try:
             # Import the module (e.g., llm4ad.tools.profiler.profile)
-            module = importlib.import_module(f'.{module_name}', package=__name__)
-            
+            module = importlib.import_module(f".{module_name}", package=__name__)
+
             # Iterate over the attributes of the module
             for attr_name in dir(module):
                 attr = getattr(module, attr_name)
-                
+
                 # Check if the attribute is a class defined in that module
                 if inspect.isclass(attr) and attr.__module__ == module.__name__:
                     # Add the class to the package's globals
@@ -30,6 +30,7 @@ for filename in os.listdir(package_dir):
         except (ImportError, ModuleNotFoundError) as e:
             # Optionally print a warning if a module cannot be imported
             pass
+
 
 def import_all_profiler_classes_from_subfolders(root_directory):
     """

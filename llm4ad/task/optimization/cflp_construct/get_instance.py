@@ -2,7 +2,15 @@ import numpy as np
 
 
 class GetData:
-    def __init__(self, n_instance: int, n_facilities: int, n_customers: int, max_capacity: int, max_demand: int, max_cost: int):
+    def __init__(
+        self,
+        n_instance: int,
+        n_facilities: int,
+        n_customers: int,
+        max_capacity: int,
+        max_demand: int,
+        max_cost: int,
+    ):
         """
         Initialize the GetDataCFLP class for the Capacitated Facility Location Problem.
 
@@ -37,21 +45,30 @@ class GetData:
 
         for _ in range(self.n_instance):
             # Generate random capacities for facilities
-            facility_capacities = np.random.randint(5, self.max_capacity + 1, size=self.n_facilities).tolist()
+            facility_capacities = np.random.randint(
+                5, self.max_capacity + 1, size=self.n_facilities
+            ).tolist()
 
             # Generate random demands for customers
-            customer_demands = np.random.randint(5, self.max_demand + 1, size=self.n_customers).tolist()
+            customer_demands = np.random.randint(
+                5, self.max_demand + 1, size=self.n_customers
+            ).tolist()
 
             # Generate random assignment costs (facility-to-customer cost matrix)
-            assignment_costs = np.random.randint(5, self.max_cost + 1, size=(self.n_facilities, self.n_customers)).tolist()
+            assignment_costs = np.random.randint(
+                5, self.max_cost + 1, size=(self.n_facilities, self.n_customers)
+            ).tolist()
 
-            instance_data.append({
-                "facility_capacities": facility_capacities,
-                "customer_demands": customer_demands,
-                "assignment_costs": assignment_costs
-            })
+            instance_data.append(
+                {
+                    "facility_capacities": facility_capacities,
+                    "customer_demands": customer_demands,
+                    "assignment_costs": assignment_costs,
+                }
+            )
 
         return instance_data
+
 
 # # Example usage:
 # data_generator = GetDataCFLP(n_instance=3, n_facilities=5, n_customers=8, max_capacity=100, max_demand=20, max_cost=50)

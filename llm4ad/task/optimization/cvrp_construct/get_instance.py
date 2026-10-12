@@ -21,10 +21,10 @@ class GetData:
         return instance_data
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     gd = GetData(10, 51)
     data = gd.generate_instances()
-    with open('data.pkl', 'wb') as f:
+    with open("data.pkl", "wb") as f:
         pickle.dump(data, f)
 
     prompt_code_temp = "import numpy as np\n\

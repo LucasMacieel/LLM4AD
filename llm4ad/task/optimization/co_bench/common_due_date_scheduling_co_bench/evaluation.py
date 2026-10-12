@@ -22,33 +22,34 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.common_due_date_scheduling_co_bench.template import template_program, task_description
 
-__all__ = ['CDDSEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.common_due_date_scheduling_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["CDDSEvaluationCB"]
 
 
 class CDDSEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
@@ -56,10 +57,12 @@ class CDDSEvaluationCB(Evaluation):
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +74,8 @@ class CDDSEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['jobs'], j['h'])
-                    fitness = self.eval_func(j['jobs'], result['schedule'], j['h'])
+                    result = eva(j["jobs"], j["h"])
+                    fitness = self.eval_func(j["jobs"], result["schedule"], j["h"])
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -105,7 +108,9 @@ class CDDSEvaluationCB(Evaluation):
         try:
             T = int(tokens[index])
         except Exception as e:
-            raise ValueError("Invalid input format: first token must be an integer (number of cases).")
+            raise ValueError(
+                "Invalid input format: first token must be an integer (number of cases)."
+            )
         index += 1
 
         for t in range(T):
@@ -120,18 +125,22 @@ class CDDSEvaluationCB(Evaluation):
             jobs = []
             for i in range(n):
                 if index + 2 >= len(tokens):
-                    raise ValueError(f"Unexpected end of input while reading job data for case {t + 1}.")
+                    raise ValueError(
+                        f"Unexpected end of input while reading job data for case {t + 1}."
+                    )
                 try:
                     p = int(tokens[index])
                     a = int(tokens[index + 1])
                     b = int(tokens[index + 2])
                 except Exception as e:
-                    raise ValueError(f"Invalid job data for job {i + 1} in case {t + 1}.")
+                    raise ValueError(
+                        f"Invalid job data for job {i + 1} in case {t + 1}."
+                    )
                 index += 3
                 jobs.append((p, a, b))
 
             # For each case, we include the jobs and set a default h value (can be adjusted if needed)
-            cases.append({'jobs': jobs, 'h': 0.6})
+            cases.append({"jobs": jobs, "h": 0.6})
 
         return cases
 
@@ -152,20 +161,26 @@ class CDDSEvaluationCB(Evaluation):
              4. Sum the penalties to yield the total score.
         """
         total_processing = sum(p for p, a, b in jobs)
-        d = int(total_processing * h)  # floor operation via int conversion for non-negative totals
+        d = int(
+            total_processing * h
+        )  # floor operation via int conversion for non-negative totals
 
         cumulative_time = 0
         total_penalty = 0
         # Validate that schedule is a permutation of 1..n
         n = len(jobs)
         if sorted(schedule) != list(range(1, n + 1)):
-            raise ValueError(f"Schedule must be a permutation of 1 to {n}. Provided schedule: {schedule}")
+            raise ValueError(
+                f"Schedule must be a permutation of 1 to {n}. Provided schedule: {schedule}"
+            )
 
         for idx in schedule:
             try:
                 p, a, b = jobs[idx - 1]  # Convert from 1-based to 0-based indexing
             except IndexError:
-                raise ValueError(f"Job index {idx} is out of bounds for jobs list of length {n}.")
+                raise ValueError(
+                    f"Job index {idx} is out of bounds for jobs list of length {n}."
+                )
             cumulative_time += p
             if cumulative_time < d:
                 total_penalty += a * (d - cumulative_time)
@@ -195,9 +210,42 @@ class CDDSEvaluationCB(Evaluation):
             20: [2986, 3260, 3600, 3336, 2206, 3016, 4175, 1638, 1992, 2116],
             50: [17990, 14231, 16497, 14105, 14650, 14251, 17715, 21367, 14298, 14377],
             100: [72019, 59351, 68537, 69231, 55291, 62519, 62213, 80844, 58771, 61419],
-            200: [254268, 266028, 254647, 297269, 260455, 236160, 247555, 225572, 255029, 269236],
-            500: [1581233, 1715332, 1644947, 1640942, 1468325, 1413345, 1634912, 1542090, 1684055, 1520515],
-            1000: [6411581, 6112598, 5985538, 6096729, 6348242, 6082142, 6575879, 6069658, 6188416, 6147295],
+            200: [
+                254268,
+                266028,
+                254647,
+                297269,
+                260455,
+                236160,
+                247555,
+                225572,
+                255029,
+                269236,
+            ],
+            500: [
+                1581233,
+                1715332,
+                1644947,
+                1640942,
+                1468325,
+                1413345,
+                1634912,
+                1542090,
+                1684055,
+                1520515,
+            ],
+            1000: [
+                6411581,
+                6112598,
+                5985538,
+                6096729,
+                6348242,
+                6082142,
+                6575879,
+                6069658,
+                6188416,
+                6147295,
+            ],
         }
 
         normed = {}
@@ -229,9 +277,14 @@ class CDDSEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'sch10.txt': [4, 5, 6], 'sch100.txt': [9, 8, 5], 'sch1000.txt': [4, 9, 0],
-               'sch20.txt': [6, 5, 3], 'sch200.txt': [2, 4, 5], 'sch50.txt': [1, 8, 2],
-               'sch500.txt': [3, 6, 9]}
+        dev = {
+            "sch10.txt": [4, 5, 6],
+            "sch100.txt": [9, 8, 5],
+            "sch1000.txt": [4, 9, 0],
+            "sch20.txt": [6, 5, 3],
+            "sch200.txt": [2, 4, 5],
+            "sch50.txt": [1, 8, 2],
+            "sch500.txt": [3, 6, 9],
+        }
 
         return dev
-

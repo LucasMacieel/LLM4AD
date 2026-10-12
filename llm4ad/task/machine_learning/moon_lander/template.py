@@ -125,11 +125,11 @@ task_description = (
     "angular velocity and angle close to zero, and both legs in contact with the ground."
 )
 
-non_image_representation_explanation = ("The execution result is a two-dimensional list where each element is an 8-dimensional "
-                                        "vector that records the state of the lander during its landing process at intervals. "
-                                        "Each vector contains: the coordinates of the lander in x and y, its linear velocities "
-                                        "in x and y, its angle, its angular velocity, and two booleans indicating whether each "
-                                        "leg is in contact with the ground. The units of the state are as follows: 'x': (units), "
-                                        "'y': (units), 'vx': (units/second), 'vy': (units/second), 'angle': (radians), 'angular velocity': (radians/second).")
-
-
+non_image_representation_explanation = (
+    "The execution result is a two-dimensional list where each element is an 8-dimensional "
+    "vector that records the state of the lander during its landing process at intervals. "
+    "Each vector contains: the coordinates of the lander in x and y, its linear velocities "
+    "in x and y, its angle, its angular velocity, and two booleans indicating whether each "
+    "leg is in contact with the ground. The units of the state are as follows: 'x': (units), "
+    "'y': (units), 'vx': (units/second), 'vy': (units/second), 'angle': (radians), 'angular velocity': (radians/second)."
+)

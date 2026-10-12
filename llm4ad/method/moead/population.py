@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-import math
+import traceback
 from threading import Lock
 from typing import List
-import numpy as np
-import traceback
 
-from ...base import *
+import numpy as np
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 
+from ...base import *
 
 
 class Population:
-    def __init__(self, pop_size, generation=0, pop: List[Function] | Population | None = None):
+    def __init__(
+        self, pop_size, generation=0, pop: List[Function] | Population | None = None
+    ):
         if pop is None:
             self._population = []
         elif isinstance(pop, list):
@@ -22,7 +23,7 @@ class Population:
 
         self._pop_size = pop_size
         # TODO: only to 2 objectives
-        w1 = np.linspace(0, 1, self._pop_size//5)
+        w1 = np.linspace(0, 1, self._pop_size // 5)
         self._weight_vectors = np.array([w1, 1 - w1])
         self._lock = Lock()
         self._next_gen_pop = []
@@ -61,24 +62,30 @@ class Population:
                 self._next_gen_pop.append(func)
 
             # update: perform survival if reach the pop size
-            if len(self._next_gen_pop) >= self._pop_size or (len(self._next_gen_pop) >= self._pop_size//5 and self._generation == 0):
+            if len(self._next_gen_pop) >= self._pop_size or (
+                len(self._next_gen_pop) >= self._pop_size // 5 and self._generation == 0
+            ):
                 pop = self._population + self._next_gen_pop
 
                 pop_elitist = pop + self._elitist
                 objs = [ind.score for ind in pop_elitist]
                 objs_array = -np.array(objs)
-                nondom_idx = NonDominatedSorting().do(objs_array, only_non_dominated_front=True)
+                nondom_idx = NonDominatedSorting().do(
+                    objs_array, only_non_dominated_front=True
+                )
                 self._elitist = []
                 for idx in nondom_idx.tolist():
                     self._elitist.append(pop_elitist[idx])
 
                 crt_pop_size = len(pop)
                 selected_idx_list = []
-                for i in range(self._pop_size//5):
-                    best_sub_score = float('-inf')
+                for i in range(self._pop_size // 5):
+                    best_sub_score = float("-inf")
                     best_sub_idx = None
                     for j in range(crt_pop_size):
-                        sub_score = -np.max(-self._weight_vectors[:, i] * np.array(pop[j].score)) # TCH
+                        sub_score = -np.max(
+                            -self._weight_vectors[:, i] * np.array(pop[j].score)
+                        )  # TCH
                         if best_sub_score < sub_score and np.isfinite(sub_score):
                             best_sub_score = sub_score
                             best_sub_idx = j
@@ -124,13 +131,13 @@ class Population:
         sub_score_list = []
         sub_idx_list = []
         for j in range(crt_pop_size):
-            sub_score = -np.max(-pref * np.array(funcs[j].score)) # TCH
+            sub_score = -np.max(-pref * np.array(funcs[j].score))  # TCH
             if np.isfinite(sub_score):
                 sub_score_list.append(sub_score)
                 sub_idx_list.append(j)
         sub_score_list = np.array(sub_score_list)
         sub_idx_list = np.array(sub_idx_list)
-        sorted_idx = np.argsort(-sub_score_list) # minus for descending
+        sorted_idx = np.argsort(-sub_score_list)  # minus for descending
         sub_idx_list = sub_idx_list[sorted_idx]
         func = [funcs[i] for i in sub_idx_list]
         p = [1 / (r + len(func)) for r in range(len(func))]

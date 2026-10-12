@@ -23,8 +23,11 @@
     2. langchain_ollama
     3. langchain
 """
-from langchain_ollama import OllamaLLM
+
 from typing import Any
+
+from langchain_ollama import OllamaLLM
+
 from ...base import LLM
 
 
@@ -43,6 +46,6 @@ class LocalOllamaLLM(LLM):
         return response
 
 
-if __name__ == '__main__':
-    model = LocalOllamaLLM('qwen3:14b')
-    print(model.draw_sample('hello'))
+if __name__ == "__main__":
+    model = LocalOllamaLLM("qwen3:14b")
+    print(model.draw_sample("hello"))

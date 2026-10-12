@@ -1,10 +1,16 @@
 import gymnasium as gym
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 # 创建 CarRacing 环境
 # env = gym.make('CarRacing-v3', render_mode='human')
-env = gym.make("CarRacing-v3", render_mode="human", lap_complete_percent=0.95, domain_randomize=False, continuous=True)
+env = gym.make(
+    "CarRacing-v3",
+    render_mode="human",
+    lap_complete_percent=0.95,
+    domain_randomize=False,
+    continuous=True,
+)
 
 
 def heuristic_action(observation):
@@ -18,9 +24,11 @@ def heuristic_action(observation):
 
     # 提取白色赛道部分
     white_threshold = 200  # 白色的阈值
-    white_mask = (observation[:, :, 0] > white_threshold) & \
-                 (observation[:, :, 1] > white_threshold) & \
-                 (observation[:, :, 2] > white_threshold)
+    white_mask = (
+        (observation[:, :, 0] > white_threshold)
+        & (observation[:, :, 1] > white_threshold)
+        & (observation[:, :, 2] > white_threshold)
+    )
 
     # 计算赛道中心线
     white_indices = np.argwhere(white_mask)
@@ -48,22 +56,31 @@ def heuristic_action(observation):
         action[2] = 0.0  # 不刹车
 
     # 根据赛道宽度调整刹车
-    white_density = np.sum(white_mask) / (observation.shape[0] * observation.shape[1])  # 白色区域密度
+    white_density = np.sum(white_mask) / (
+        observation.shape[0] * observation.shape[1]
+    )  # 白色区域密度
     if white_density < 0.1:  # 赛道窄，减速或刹车
         action[1] = 0.4  # 减速
         action[2] = 0.3  # 增加刹车力度
 
     return action
 
+
 def heuristic_action_4o(observation):
     action = np.array([0.0, 0.0, 0.0])
     white_threshold = 200  # 白色的阈值
-    white_mask = (observation[:, :, 0] > white_threshold) & \
-                 (observation[:, :, 1] > white_threshold) & \
-                 (observation[:, :, 2] > white_threshold)
+    white_mask = (
+        (observation[:, :, 0] > white_threshold)
+        & (observation[:, :, 1] > white_threshold)
+        & (observation[:, :, 2] > white_threshold)
+    )
 
     white_indices = np.argwhere(white_mask)
-    center_x = np.mean(white_indices[:, 1]) if len(white_indices) > 0 else observation.shape[1] // 2
+    center_x = (
+        np.mean(white_indices[:, 1])
+        if len(white_indices) > 0
+        else observation.shape[1] // 2
+    )
     car_position = observation.shape[1] // 2
     offset = center_x - car_position
 
@@ -92,7 +109,7 @@ def display_observation(observation):
     显示当前的观察值。
     """
     plt.imshow(observation)
-    plt.axis('off')  # 关闭坐标轴
+    plt.axis("off")  # 关闭坐标轴
     plt.show()
 
 
@@ -130,6 +147,6 @@ while not done:
 
 # 关闭环境
 env.close()
-print('赛车终止')
+print("赛车终止")
 display_observation(obs1_upper)
 print(sum_reward)

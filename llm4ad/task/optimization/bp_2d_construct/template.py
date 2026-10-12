@@ -33,6 +33,6 @@ def determine_next_assignment(remaining_items: List[Tuple[int, int]], point_matr
 
 '''
 
-task_description = '''
+task_description = """
 Given a set of rectangular bins and rectangular items, iteratively assign each item to a feasible position in one of the bins. Design a constructive heuristic that, in each iteration, selects the best item and placement from the remaining items and feasible corners, with the objective of minimizing the number of used bins.
-'''
+"""

@@ -25,13 +25,15 @@ def solve(n: int, cx: float, cy: float, R: float, radii: list) -> dict:
     return {"coords": []}
 '''
 
-task_description = ("The problem involves packing a subset of unequal circles into a fixed circular container with "
-                    "radius R_0 and center at the origin, where each circle i has a given radius R_i (sorted in "
-                    "non-decreasing order) and is associated with a binary decision variable \\alpha_i indicating "
-                    "whether it is packed. The goal is to maximize the number of circles packed—that is, "
-                    "maximize \sum_{i=1}^{n}\\alpha_i—subject to two sets of nonlinear constraints: (1) each packed "
-                    "circle must lie entirely within the container, which is enforced by ensuring that the distance "
-                    "from its center to the container’s center plus its radius does not exceed R_0; and (2) any two "
-                    "packed circles must not overlap, meaning the distance between their centers must be at least the "
-                    "sum of their radii."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The problem involves packing a subset of unequal circles into a fixed circular container with "
+    "radius R_0 and center at the origin, where each circle i has a given radius R_i (sorted in "
+    "non-decreasing order) and is associated with a binary decision variable \\alpha_i indicating "
+    "whether it is packed. The goal is to maximize the number of circles packed—that is, "
+    "maximize \\sum_{i=1}^{n}\\alpha_i—subject to two sets of nonlinear constraints: (1) each packed "
+    "circle must lie entirely within the container, which is enforced by ensuring that the distance "
+    "from its center to the container’s center plus its radius does not exceed R_0; and (2) any two "
+    "packed circles must not overlap, meaning the distance between their centers must be at least the "
+    "sum of their radii."
+    "Help me design a novel algorithm to solve this problem."
+)

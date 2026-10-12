@@ -22,44 +22,49 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.equitable_partitioning_problem_co_bench.template import template_program, task_description
 
-__all__ = ['EPPEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.equitable_partitioning_problem_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["EPPEvaluationCB"]
 
 
 class EPPEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
-        dataset = load_subdir_as_text("CO-Bench/CO-Bench", "Equitable partitioning problem")
+        dataset = load_subdir_as_text(
+            "CO-Bench/CO-Bench", "Equitable partitioning problem"
+        )
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +76,10 @@ class EPPEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['data'])
-                    fitness = self.eval_func(data=j['data'], assignment=result['assignment'])
+                    result = eva(j["data"])
+                    fitness = self.eval_func(
+                        data=j["data"], assignment=result["assignment"]
+                    )
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -101,7 +108,7 @@ class EPPEvaluationCB(Evaluation):
                        tokens not in {0, 1}, or if any row has an inconsistent number of attributes.
         """
         try:
-            all_lines = [line.strip() for line in input_string.split('\n')]
+            all_lines = [line.strip() for line in input_string.split("\n")]
         except Exception as e:
             raise Exception("Error reading input string: " + str(e))
 
@@ -129,19 +136,26 @@ class EPPEvaluationCB(Evaluation):
             for line_no, line in enumerate(case_lines, start=1):
                 tokens = line.split()
                 if not tokens:
-                    raise Exception(f"Case {case_idx}, line {line_no} is empty or invalid.")
+                    raise Exception(
+                        f"Case {case_idx}, line {line_no} is empty or invalid."
+                    )
                 try:
                     row = [int(token) for token in tokens]
                 except ValueError:
-                    raise Exception(f"Non-integer value found in case {case_idx}, line {line_no}.")
+                    raise Exception(
+                        f"Non-integer value found in case {case_idx}, line {line_no}."
+                    )
                 for token in row:
                     if token not in (0, 1):
                         raise Exception(
-                            f"Invalid attribute value {token} found in case {case_idx}, line {line_no}; expected only 0 or 1.")
+                            f"Invalid attribute value {token} found in case {case_idx}, line {line_no}; expected only 0 or 1."
+                        )
                 if n_attributes is None:
                     n_attributes = len(row)
                 elif len(row) != n_attributes:
-                    raise Exception(f"Inconsistent number of attributes in case {case_idx}, line {line_no}.")
+                    raise Exception(
+                        f"Inconsistent number of attributes in case {case_idx}, line {line_no}."
+                    )
                 matrix.append(row)
             list_of_cases.append({"data": matrix})
 
@@ -167,30 +181,40 @@ class EPPEvaluationCB(Evaluation):
           Exception: If any expected parameter is missing, if the assignment format is invalid, or if the number of groups is not 8.
         """
         # Retrieve input data and assignment from kwargs
-        if 'data' not in kwargs or 'assignment' not in kwargs:
-            raise Exception("Missing required input parameters 'data' and/or 'assignment'.")
+        if "data" not in kwargs or "assignment" not in kwargs:
+            raise Exception(
+                "Missing required input parameters 'data' and/or 'assignment'."
+            )
 
-        data = kwargs['data']
-        assignment = kwargs['assignment']
+        data = kwargs["data"]
+        assignment = kwargs["assignment"]
         #
         n_individuals = len(data)
         if len(assignment) != n_individuals:
-            raise Exception(f"Expected {n_individuals} group assignments but found {len(assignment)}.")
+            raise Exception(
+                f"Expected {n_individuals} group assignments but found {len(assignment)}."
+            )
 
         n_attributes = len(data[0])
         for idx, row in enumerate(data, start=1):
             if len(row) != n_attributes:
-                raise Exception(f"Inconsistent number of attributes in data at individual {idx}.")
+                raise Exception(
+                    f"Inconsistent number of attributes in data at individual {idx}."
+                )
 
         # Ensure all group assignments are positive integers.
         for idx, g in enumerate(assignment, start=1):
             if not isinstance(g, int) or g < 1:
-                raise Exception(f"Invalid group assignment at position {idx}: {g}. Must be a positive integer.")
+                raise Exception(
+                    f"Invalid group assignment at position {idx}: {g}. Must be a positive integer."
+                )
 
         # Collect unique groups and check for exactly 8 groups.
         groups = set(assignment)
         if len(groups) != 8:
-            raise Exception(f"Invalid number of groups: expected 8, but got {len(groups)}.")
+            raise Exception(
+                f"Invalid number of groups: expected 8, but got {len(groups)}."
+            )
 
         # Initialize per-group attribute sums.
         group_sums = {g: [0] * n_attributes for g in groups}
@@ -244,10 +268,11 @@ class EPPEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'eppperf1.txt': [0], 'eppperf3.txt': [0],
-               'epprandom2.txt': [0], 'epprandom4.txt': [0]}
+        dev = {
+            "eppperf1.txt": [0],
+            "eppperf3.txt": [0],
+            "epprandom2.txt": [0],
+            "epprandom4.txt": [0],
+        }
 
         return dev
-
-
-

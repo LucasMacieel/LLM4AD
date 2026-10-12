@@ -12,46 +12,53 @@
 #    - knapsack_capacity: Maximum capacity of the knapsack: int (default: 50).
 #
 # References:
-#   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-#       Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+#       Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 #       with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
 #
 # ------------------------------- Copyright --------------------------------
 # Copyright (c) 2025 Optima Group.
-# 
-# Permission is granted to use the LLM4AD platform for research purposes. 
-# All publications, software, or other works that utilize this platform 
-# or any part of its codebase must acknowledge the use of "LLM4AD" and 
+#
+# Permission is granted to use the LLM4AD platform for research purposes.
+# All publications, software, or other works that utilize this platform
+# or any part of its codebase must acknowledge the use of "LLM4AD" and
 # cite the following reference:
-# 
-# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#
+# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 # with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
-# 
-# For inquiries regarding commercial use or licensing, please contact 
+#
+# For inquiries regarding commercial use or licensing, please contact
 # http://www.llm4ad.com/contact.html
 # --------------------------------------------------------------------------
 
 from __future__ import annotations
-from typing import Callable, Any, List, Tuple
+
+from typing import Any, Callable, List, Tuple
+
 import matplotlib.pyplot as plt
 
 from llm4ad.base import Evaluation
 from llm4ad.task.optimization.knapsack_construct.get_instance import GetData
-from llm4ad.task.optimization.knapsack_construct.template import template_program, task_description
+from llm4ad.task.optimization.knapsack_construct.template import (
+    task_description,
+    template_program,
+)
 
-__all__ = ['KnapsackEvaluation']
+__all__ = ["KnapsackEvaluation"]
 
 
 class KnapsackEvaluation(Evaluation):
     """Evaluator for the Knapsack Problem."""
 
-    def __init__(self,
-                 timeout_seconds=20,
-                 n_instance=32,
-                 n_items=50,
-                 knapsack_capacity=100,
-                 **kwargs):
+    def __init__(
+        self,
+        timeout_seconds=20,
+        n_instance=32,
+        n_items=50,
+        knapsack_capacity=100,
+        **kwargs,
+    ):
         """
         Initialize the evaluator for the Knapsack Problem.
         """
@@ -59,7 +66,7 @@ class KnapsackEvaluation(Evaluation):
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         self.n_instance = n_instance
@@ -71,7 +78,13 @@ class KnapsackEvaluation(Evaluation):
     def evaluate_program(self, program_str: str, callable_func: Callable) -> Any | None:
         return self.evaluate(callable_func)
 
-    def plot_solution(self, item_weights: list, item_values: list, selected_indices: list, knapsack_capacity: int):
+    def plot_solution(
+        self,
+        item_weights: list,
+        item_values: list,
+        selected_indices: list,
+        knapsack_capacity: int,
+    ):
         """
         Plot the solution of the Knapsack problem.
 
@@ -90,20 +103,35 @@ class KnapsackEvaluation(Evaluation):
         # Create a bar plot for selected items
         fig, ax = plt.subplots()
         x = range(len(selected_indices))
-        ax.bar(x, selected_weights, label='Weight', color='blue', alpha=0.6)
-        ax.bar(x, selected_values, label='Value', color='orange', alpha=0.6, bottom=selected_weights)
+        ax.bar(x, selected_weights, label="Weight", color="blue", alpha=0.6)
+        ax.bar(
+            x,
+            selected_values,
+            label="Value",
+            color="orange",
+            alpha=0.6,
+            bottom=selected_weights,
+        )
 
         # Add labels and title
-        ax.set_xlabel('Selected Items')
-        ax.set_ylabel('Weight / Value')
-        ax.set_title(f'Knapsack Solution\nTotal Weight: {total_weight}/{knapsack_capacity}, Total Value: {total_value}')
+        ax.set_xlabel("Selected Items")
+        ax.set_ylabel("Weight / Value")
+        ax.set_title(
+            f"Knapsack Solution\nTotal Weight: {total_weight}/{knapsack_capacity}, Total Value: {total_value}"
+        )
         ax.set_xticks(x)
-        ax.set_xticklabels([f'Item {i}' for i in selected_indices])
+        ax.set_xticklabels([f"Item {i}" for i in selected_indices])
         ax.legend()
 
         plt.show()
 
-    def pack_items(self, item_weights: List[int], item_values: List[int], knapsack_capacity: int, eva: Callable) -> Tuple[int, List[int]]:
+    def pack_items(
+        self,
+        item_weights: List[int],
+        item_values: List[int],
+        knapsack_capacity: int,
+        eva: Callable,
+    ) -> Tuple[int, List[int]]:
         """
         Select items for the knapsack using a constructive heuristic.
 
@@ -118,7 +146,9 @@ class KnapsackEvaluation(Evaluation):
             - The total value of the selected items.
             - A list of selected item indices.
         """
-        remaining_items = list(zip(item_weights, item_values, range(len(item_weights))))  # Track weights, values, and indices
+        remaining_items = list(
+            zip(item_weights, item_values, range(len(item_weights)))
+        )  # Track weights, values, and indices
         selected_items = []  # List of selected item indices
         remaining_capacity = knapsack_capacity  # Track remaining capacity
         total_value = 0  # Track total value of selected items
@@ -155,18 +185,22 @@ class KnapsackEvaluation(Evaluation):
         """
         total_value = 0
 
-        for instance in self._datasets[:self.n_instance]:
+        for instance in self._datasets[: self.n_instance]:
             item_weights, item_values, knapsack_capacity = instance
-            value, _ = self.pack_items(item_weights, item_values, knapsack_capacity, eva)
+            value, _ = self.pack_items(
+                item_weights, item_values, knapsack_capacity, eva
+            )
             total_value += value
 
         average_value = total_value / self.n_instance
         return -average_value  # Positive because we want to maximize the total value
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    def select_next_item(remaining_capacity: int, remaining_items: List[Tuple[int, int, int]]) -> Tuple[int, int, int] | None:
+    def select_next_item(
+        remaining_capacity: int, remaining_items: List[Tuple[int, int, int]]
+    ) -> Tuple[int, int, int] | None:
         """
         Select the item with the highest value-to-weight ratio that fits in the remaining capacity.
 
@@ -190,7 +224,6 @@ if __name__ == '__main__':
 
         return best_item
 
-
     bp1d = KnapsackEvaluation()
-    ave_bins = bp1d.evaluate_program('_', select_next_item)
+    ave_bins = bp1d.evaluate_program("_", select_next_item)
     print(ave_bins)

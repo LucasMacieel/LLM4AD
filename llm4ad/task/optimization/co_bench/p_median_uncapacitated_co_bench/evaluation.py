@@ -22,33 +22,34 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.p_median_uncapacitated_co_bench.template import template_program, task_description
 
-__all__ = ['PMUEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.p_median_uncapacitated_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["PMUEvaluationCB"]
 
 
 class PMUEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=300,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=300, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
@@ -56,10 +57,12 @@ class PMUEvaluationCB(Evaluation):
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +74,14 @@ class PMUEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['n'], j['m'], j['p'], j['dist'])
-                    fitness = self.eval_func(n=j['n'], p=j['p'], m=j['m'], dist=j['dist'], medians=result['medians'])
+                    result = eva(j["n"], j["m"], j["p"], j["dist"])
+                    fitness = self.eval_func(
+                        n=j["n"],
+                        p=j["p"],
+                        m=j["m"],
+                        dist=j["dist"],
+                        medians=result["medians"],
+                    )
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -105,13 +114,14 @@ class PMUEvaluationCB(Evaluation):
                 - 'p': int, number of medians to choose.
                 - 'dist': list of lists, the complete cost matrix (n x n), converted from a NumPy array.
         """
-        import numpy as np
         import math
+
+        import numpy as np
 
         INF = math.inf
 
         # Read the entire file and filter out empty lines
-        all_lines = [line.strip() for line in input_string.split('\n')]
+        all_lines = [line.strip() for line in input_string.split("\n")]
 
         cases = []
         idx = 0
@@ -119,7 +129,9 @@ class PMUEvaluationCB(Evaluation):
             header_parts = all_lines[idx].split()
             idx += 1
             if len(header_parts) < 3:
-                raise ValueError("Header line must contain at least three numbers: n, m, p.")
+                raise ValueError(
+                    "Header line must contain at least three numbers: n, m, p."
+                )
             try:
                 n = int(header_parts[0])
                 m = int(header_parts[1])
@@ -152,15 +164,10 @@ class PMUEvaluationCB(Evaluation):
             # Vectorized Floyd–Warshall: update distances using broadcasting.
             for k in range(n):
                 # Update: dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]) for all i, j.
-                dist = np.minimum(dist, dist[:, k:k + 1] + dist[k:k + 1, :])
+                dist = np.minimum(dist, dist[:, k : k + 1] + dist[k : k + 1, :])
 
             # Convert the NumPy array to a list of lists for compatibility.
-            cases.append({
-                "n": n,
-                "m": m,
-                "p": p,
-                "dist": dist.tolist()
-            })
+            cases.append({"n": n, "m": m, "p": p, "dist": dist.tolist()})
 
         return cases
 
@@ -189,19 +196,31 @@ class PMUEvaluationCB(Evaluation):
 
         # Validate input constraints
         if not isinstance(n, int) or n <= 0:
-            raise ValueError("Invalid number of vertices (n). Must be a positive integer.")
+            raise ValueError(
+                "Invalid number of vertices (n). Must be a positive integer."
+            )
         if not isinstance(p, int) or p <= 0 or p > n:
-            raise ValueError("Invalid number of medians (p). Must be a positive integer and at most n.")
-        if not isinstance(dist, list) or len(dist) != n or any(len(row) != n for row in dist):
-            raise ValueError("Invalid distance matrix. Must be a square matrix of size (n x n).")
+            raise ValueError(
+                "Invalid number of medians (p). Must be a positive integer and at most n."
+            )
+        if (
+            not isinstance(dist, list)
+            or len(dist) != n
+            or any(len(row) != n for row in dist)
+        ):
+            raise ValueError(
+                "Invalid distance matrix. Must be a square matrix of size (n x n)."
+            )
         if not isinstance(medians, list) or len(medians) != p:
-            raise ValueError(f"Medians must be a list of exactly {p} distinct integers.")
+            raise ValueError(
+                f"Medians must be a list of exactly {p} distinct integers."
+            )
         if len(set(medians)) != p:
             raise ValueError("Medians must be distinct values.")
         if any(not isinstance(m, int) or m < 1 or m > n for m in medians):
             raise ValueError("Each median must be an integer in the range [1, n].")
 
-        INF = float('inf')
+        INF = float("inf")
         total_cost = 0.0
 
         for i in range(n):
@@ -211,7 +230,9 @@ class PMUEvaluationCB(Evaluation):
                 if d < best_distance:
                     best_distance = d
             if best_distance == INF:
-                raise ValueError(f"Vertex {i + 1} is unreachable from all chosen medians.")
+                raise ValueError(
+                    f"Vertex {i + 1} is unreachable from all chosen medians."
+                )
             total_cost += best_distance
 
         return total_cost
@@ -257,7 +278,7 @@ class PMUEvaluationCB(Evaluation):
             "pmed37.txt": [5057],
             "pmed38.txt": [11060],
             "pmed39.txt": [9423],
-            "pmed40.txt": [5128]
+            "pmed40.txt": [5128],
         }
 
         normed = {}
@@ -277,18 +298,27 @@ class PMUEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'pmed1.txt': [], 'pmed11.txt': [], 'pmed13.txt': [],
-               'pmed15.txt': [], 'pmed17.txt': [], 'pmed19.txt': [],
-               'pmed21.txt': [], 'pmed23.txt': [], 'pmed25.txt': [],
-               'pmed27.txt': [], 'pmed29.txt': [], 'pmed3.txt': [],
-               'pmed31.txt': [], 'pmed33.txt': [], 'pmed35.txt': [],
-               'pmed37.txt': [], 'pmed39.txt': [], 'pmed5.txt': [],
-               'pmed7.txt': [], 'pmed9.txt': []}
+        dev = {
+            "pmed1.txt": [],
+            "pmed11.txt": [],
+            "pmed13.txt": [],
+            "pmed15.txt": [],
+            "pmed17.txt": [],
+            "pmed19.txt": [],
+            "pmed21.txt": [],
+            "pmed23.txt": [],
+            "pmed25.txt": [],
+            "pmed27.txt": [],
+            "pmed29.txt": [],
+            "pmed3.txt": [],
+            "pmed31.txt": [],
+            "pmed33.txt": [],
+            "pmed35.txt": [],
+            "pmed37.txt": [],
+            "pmed39.txt": [],
+            "pmed5.txt": [],
+            "pmed7.txt": [],
+            "pmed9.txt": [],
+        }
 
         return dev
-
-
-
-
-
-

@@ -14,6 +14,7 @@ def equation(strain: np.ndarray, temp: np.ndarray, params: np.ndarray) -> np.nda
     return params[0] * strain  +  params[1] * temp
 '''
 
-task_description = ("Find the mathematical function skeleton that represents stress, given data on strain and "
-                    "temperature in an Aluminium rod for both elastic and plastic regions.")
-
+task_description = (
+    "Find the mathematical function skeleton that represents stress, given data on strain and "
+    "temperature in an Aluminium rod for both elastic and plastic regions."
+)

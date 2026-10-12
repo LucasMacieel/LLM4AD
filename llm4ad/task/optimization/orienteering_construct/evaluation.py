@@ -8,27 +8,31 @@ import numpy as np
 
 from llm4ad.base import Evaluation
 from llm4ad.task.optimization.orienteering_construct.get_instance import GetData
-from llm4ad.task.optimization.orienteering_construct.template import template_program, task_description
+from llm4ad.task.optimization.orienteering_construct.template import (
+    task_description,
+    template_program,
+)
 
-__all__ = ['OrienteeringEvaluation']
+__all__ = ["OrienteeringEvaluation"]
 
 
 class OrienteeringEvaluation(Evaluation):
     """Evaluator for constructive heuristics for the Orienteering Problem."""
 
     def __init__(
-            self,
-            timeout_seconds=30,
-            n_instance=16,
-            problem_size=50,
-            max_length_ratio=0.35,
-            seed=2024,
-            **kwargs):
+        self,
+        timeout_seconds=30,
+        n_instance=16,
+        problem_size=50,
+        max_length_ratio=0.35,
+        seed=2024,
+        **kwargs,
+    ):
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         self.n_instance = int(n_instance)
@@ -46,19 +50,23 @@ class OrienteeringEvaluation(Evaluation):
         return self.evaluate(callable_func)
 
     def get_feasible_unvisited_nodes(
-            self,
-            current_node: int,
-            destination_node: int,
-            unvisited_nodes: np.ndarray,
-            distance_matrix: np.ndarray,
-            remaining_budget: float,
+        self,
+        current_node: int,
+        destination_node: int,
+        unvisited_nodes: np.ndarray,
+        distance_matrix: np.ndarray,
+        remaining_budget: float,
     ) -> np.ndarray:
         travel_to_node = distance_matrix[current_node][unvisited_nodes]
         return_to_destination = distance_matrix[unvisited_nodes, destination_node]
-        feasible_mask = travel_to_node + return_to_destination <= remaining_budget + 1e-12
+        feasible_mask = (
+            travel_to_node + return_to_destination <= remaining_budget + 1e-12
+        )
         return unvisited_nodes[feasible_mask]
 
-    def construct_solution(self, instance: dict, select_next_node: callable) -> tuple[list[int], float, float] | None:
+    def construct_solution(
+        self, instance: dict, select_next_node: callable
+    ) -> tuple[list[int], float, float] | None:
         distance_matrix = instance["distance_matrix"]
         prizes = instance["prizes"]
         start_node = int(instance["start_node"])
@@ -129,14 +137,16 @@ class OrienteeringEvaluation(Evaluation):
         return float(np.mean(collected_prizes))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+
     def select_next_node(
-            current_node: int,
-            destination_node: int,
-            unvisited_nodes: np.ndarray,
-            distance_matrix: np.ndarray,
-            prizes: np.ndarray,
-            remaining_budget: float) -> int:
+        current_node: int,
+        destination_node: int,
+        unvisited_nodes: np.ndarray,
+        distance_matrix: np.ndarray,
+        prizes: np.ndarray,
+        remaining_budget: float,
+    ) -> int:
         travel_cost = distance_matrix[current_node][unvisited_nodes]
         return_cost = distance_matrix[unvisited_nodes, destination_node]
         scores = prizes[unvisited_nodes] / (travel_cost + return_cost + 1e-12)

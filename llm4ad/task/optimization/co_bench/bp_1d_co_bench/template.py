@@ -31,12 +31,14 @@ def solve(id: str, bin_capacity: int, num_items: int, items: list[int], **kwargs
     }
 '''
 
-task_description = ("The **one-dimensional bin packing problem** seeks to minimize the number of bins required to "
-                    "pack a given set of items while ensuring that the sum of item sizes within each bin does not "
-                    "exceed the specified bin capacity. Given a test case with an identifier (`id`), "
-                    "a fixed `bin_capacity`, and a list of `num_items` with their respective sizes (`items`), "
-                    "the objective is to find a packing arrangement that uses the least number of bins. The solution "
-                    "is evaluated based on the total `num_bins` used, with invalid solutions (e.g., missing or "
-                    "duplicated items, or bins exceeding capacity) incurring a inf heavy penalty. The output must "
-                    "include the number of bins used and a valid assignment of item indices to bins."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The **one-dimensional bin packing problem** seeks to minimize the number of bins required to "
+    "pack a given set of items while ensuring that the sum of item sizes within each bin does not "
+    "exceed the specified bin capacity. Given a test case with an identifier (`id`), "
+    "a fixed `bin_capacity`, and a list of `num_items` with their respective sizes (`items`), "
+    "the objective is to find a packing arrangement that uses the least number of bins. The solution "
+    "is evaluated based on the total `num_bins` used, with invalid solutions (e.g., missing or "
+    "duplicated items, or bins exceeding capacity) incurring a inf heavy penalty. The output must "
+    "include the number of bins used and a valid assignment of item indices to bins."
+    "Help me design a novel algorithm to solve this problem."
+)

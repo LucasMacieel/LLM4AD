@@ -31,30 +31,34 @@
 from __future__ import annotations
 
 from typing import Any
+
 import numpy as np
+
 from llm4ad.base import Evaluation
 from llm4ad.task.optimization.max_cut.get_instance import GetData
-from llm4ad.task.optimization.max_cut.template import template_program, task_description
+from llm4ad.task.optimization.max_cut.template import task_description, template_program
 
-__all__ = ['MaxCutEvaluation']
+__all__ = ["MaxCutEvaluation"]
 
 
 class MaxCutEvaluation(Evaluation):
     """Evaluator for maximum cut problem using local search."""
 
-    def __init__(self,
-                 timeout_seconds=30,
-                 n_instance=16,
-                 n_nodes=100,
-                 edge_probability=0.5,
-                 max_flips=None,
-                 **kwargs):
+    def __init__(
+        self,
+        timeout_seconds=30,
+        n_instance=16,
+        n_nodes=100,
+        edge_probability=0.5,
+        max_flips=None,
+        **kwargs,
+    ):
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         self.n_instance = n_instance
@@ -78,7 +82,9 @@ class MaxCutEvaluation(Evaluation):
                     cut_value += weight
         return cut_value
 
-    def compute_flip_gain(self, node: int, adjacency: dict, cut_S_set: set, cut_T_set: set) -> float:
+    def compute_flip_gain(
+        self, node: int, adjacency: dict, cut_S_set: set, cut_T_set: set
+    ) -> float:
         """Compute the gain of flipping a node (positive means improvement)."""
         gain = 0.0
         if node in cut_S_set:
@@ -96,7 +102,9 @@ class MaxCutEvaluation(Evaluation):
                     gain -= weight
         return gain
 
-    def get_improving_candidates(self, adjacency: dict, cut_S: list, cut_T: list) -> list:
+    def get_improving_candidates(
+        self, adjacency: dict, cut_S: list, cut_T: list
+    ) -> list:
         """Get all nodes whose flip would improve (or not worsen) the cut."""
         cut_S_set = set(cut_S)
         cut_T_set = set(cut_T)
@@ -115,7 +123,6 @@ class MaxCutEvaluation(Evaluation):
         n_ins = 0
 
         for adjacency, _ in self._datasets:
-
             # Random initialization
             all_nodes = list(adjacency.keys())
             np.random.shuffle(all_nodes)
@@ -125,7 +132,6 @@ class MaxCutEvaluation(Evaluation):
 
             # Local search loop
             for flip_step in range(self.max_flips):
-
                 candidates = self.get_improving_candidates(adjacency, cut_S, cut_T)
 
                 if len(candidates) == 0:
@@ -161,13 +167,14 @@ class MaxCutEvaluation(Evaluation):
         return ave_cut
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
 
     print(sys.path)
 
-
-    def select_node_to_flip(candidates: list, cut_S: list, cut_T: list, adjacency: dict) -> int:
+    def select_node_to_flip(
+        candidates: list, cut_S: list, cut_T: list, adjacency: dict
+    ) -> int:
         """
         Design a novel algorithm to select which node to flip in each step of local search.
 
@@ -182,7 +189,7 @@ if __name__ == '__main__':
         The index of the selected node from the candidates list.
         """
         best_idx = 0
-        best_gain = -float('inf')
+        best_gain = -float("inf")
 
         cut_S_set = set(cut_S)
         cut_T_set = set(cut_T)
@@ -208,4 +215,4 @@ if __name__ == '__main__':
         return best_idx
 
     maxcut = MaxCutEvaluation()
-    maxcut.evaluate_program('_', select_node_to_flip)
+    maxcut.evaluate_program("_", select_node_to_flip)

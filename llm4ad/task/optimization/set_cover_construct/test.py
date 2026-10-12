@@ -35,7 +35,9 @@ class GetData:
             processing_times = []
             for _ in range(self.n_jobs):
                 # Randomly assign processing times for each machine
-                job_processing_times = np.random.randint(1, 100, size=self.n_machines).tolist()
+                job_processing_times = np.random.randint(
+                    1, 100, size=self.n_machines
+                ).tolist()
                 processing_times.append(job_processing_times)
 
             instance_data.append((processing_times, self.n_jobs, self.n_machines))
@@ -74,13 +76,17 @@ def schedule_jobs(processing_times, n_jobs, n_machines):
     # Initialize the current status of each machine and job
     machine_status = [0] * n_machines  # Time each machine is available
     job_status = [0] * n_jobs  # Time each job is available
-    operation_sequence = [[] for _ in range(n_jobs)]  # Sequence of operations for each job
+    operation_sequence = [
+        [] for _ in range(n_jobs)
+    ]  # Sequence of operations for each job
 
     # Initialize the list of all operations
     all_operations = []
     for job_id in range(n_jobs):
         for machine_id in range(n_machines):
-            all_operations.append((job_id, machine_id, processing_times[job_id][machine_id]))
+            all_operations.append(
+                (job_id, machine_id, processing_times[job_id][machine_id])
+            )
 
     # Schedule operations until all are completed
     while all_operations:
@@ -95,7 +101,10 @@ def schedule_jobs(processing_times, n_jobs, n_machines):
             next_operation = all_operations[0]
         else:
             # Determine the next operation to schedule
-            next_operation = determine_next_operation({'machine_status': machine_status, 'job_status': job_status}, feasible_operations)
+            next_operation = determine_next_operation(
+                {"machine_status": machine_status, "job_status": job_status},
+                feasible_operations,
+            )
 
         # Schedule the next operation
         job_id, machine_id, processing_time = next_operation

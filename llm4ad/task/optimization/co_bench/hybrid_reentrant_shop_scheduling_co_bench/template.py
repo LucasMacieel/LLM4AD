@@ -28,15 +28,17 @@ def solve(n_jobs: int, n_machines: int, init_time: int, setup_times: list, proce
     }
 '''
 
-task_description = ("The problem is a Hybrid Reentrant Shop Scheduling problem where each of n jobs must sequentially "
-                    "undergo three operations: an initialization phase on one of m identical primary machines, "
-                    "a setup phase on a single remote server, and a final main processing phase on the same primary "
-                    "machine used for initialization. Jobs are initialized in a fixed natural order using list "
-                    "scheduling, while the setup phase is processed on the remote server in an order specified by a "
-                    "permutation decision variable. Additionally, each job is assigned to a primary machine for main "
-                    "processing via a batch_assignment, and on each machine, jobs are processed in natural ("
-                    "initialization) order. The objective is to minimize the makespan, defined as the time when the "
-                    "last job completes its main processing, while ensuring that no machine (primary or server) "
-                    "processes more than one job simultaneously and that all operational precedence constraints are "
-                    "satisfied."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The problem is a Hybrid Reentrant Shop Scheduling problem where each of n jobs must sequentially "
+    "undergo three operations: an initialization phase on one of m identical primary machines, "
+    "a setup phase on a single remote server, and a final main processing phase on the same primary "
+    "machine used for initialization. Jobs are initialized in a fixed natural order using list "
+    "scheduling, while the setup phase is processed on the remote server in an order specified by a "
+    "permutation decision variable. Additionally, each job is assigned to a primary machine for main "
+    "processing via a batch_assignment, and on each machine, jobs are processed in natural ("
+    "initialization) order. The objective is to minimize the makespan, defined as the time when the "
+    "last job completes its main processing, while ensuring that no machine (primary or server) "
+    "processes more than one job simultaneously and that all operational precedence constraints are "
+    "satisfied."
+    "Help me design a novel algorithm to solve this problem."
+)

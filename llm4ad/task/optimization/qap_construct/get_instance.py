@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class GetData:
     def __init__(self, n_instance: int, n_facilities: int):
         """
@@ -26,8 +27,12 @@ class GetData:
 
         for _ in range(self.n_instance):
             # Generate random flow and distance matrices
-            flow_matrix = np.random.randint(1, 101, size=(self.n_facilities, self.n_facilities))
-            distance_matrix = np.random.randint(1, 101, size=(self.n_facilities, self.n_facilities))
+            flow_matrix = np.random.randint(
+                1, 101, size=(self.n_facilities, self.n_facilities)
+            )
+            distance_matrix = np.random.randint(
+                1, 101, size=(self.n_facilities, self.n_facilities)
+            )
 
             # Ensure the matrices are symmetric and have zero diagonals
             flow_matrix = (flow_matrix + flow_matrix.T) // 2
@@ -39,6 +44,7 @@ class GetData:
             instance_data.append((flow_matrix, distance_matrix))
 
         return instance_data
+
 
 # Example usage:
 # generator = QAPDataGenerator(n_instance=5, n_facilities=4)

@@ -23,44 +23,49 @@ from __future__ import annotations
 
 import ast
 from typing import Any
+
 import numpy as np
+
 from llm4ad.base import Evaluation
 from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.vehicle_routing_period_routing_co_bench.template import template_program, task_description
+from llm4ad.task.optimization.co_bench.vehicle_routing_period_routing_co_bench.template import (
+    task_description,
+    template_program,
+)
 
-__all__ = ['VRPREvaluationCB']
+__all__ = ["VRPREvaluationCB"]
 
 
 class VRPREvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
-        dataset = load_subdir_as_text("CO-Bench/CO-Bench", "Vehicle routing: period routing")
+        dataset = load_subdir_as_text(
+            "CO-Bench/CO-Bench", "Vehicle routing: period routing"
+        )
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -72,8 +77,22 @@ class VRPREvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['depot'], j['costumers'], j['vehicles_per_day'], j['vehicle_capacity'], j['period_length'])
-                    fitness = self.eval_func(depot=j['depot'], customers=j['costumers'], vehicles_per_day=j['vehicles_per_day'], vehicle_capacity=j['vehicle_capacity'], period_length=j['period_length'], selected_schedules=result['selected_schedules'], tours=result['tours'])
+                    result = eva(
+                        j["depot"],
+                        j["costumers"],
+                        j["vehicles_per_day"],
+                        j["vehicle_capacity"],
+                        j["period_length"],
+                    )
+                    fitness = self.eval_func(
+                        depot=j["depot"],
+                        customers=j["costumers"],
+                        vehicles_per_day=j["vehicles_per_day"],
+                        vehicle_capacity=j["vehicle_capacity"],
+                        period_length=j["period_length"],
+                        selected_schedules=result["selected_schedules"],
+                        tours=result["tours"],
+                    )
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -113,28 +132,36 @@ class VRPREvaluationCB(Evaluation):
         """
 
         # Read file and filter out any empty lines.
-        all_lines = [line.strip() for line in input_string.split('\n')]
+        all_lines = [line.strip() for line in input_string.split("\n")]
 
         # Check that we have at least 3 lines for headers.
         if len(all_lines) < 3:
-            raise ValueError("Insufficient data in the file. Expect at least three header lines.")
+            raise ValueError(
+                "Insufficient data in the file. Expect at least three header lines."
+            )
 
         # Parse header
         # First line: number of customers and period length:
         header1 = all_lines[0].split()
         if len(header1) != 2:
             print(header1)
-            raise ValueError("The first line must have exactly 2 tokens: <num_customers> <period_length>.")
+            raise ValueError(
+                "The first line must have exactly 2 tokens: <num_customers> <period_length>."
+            )
         try:
             num_customers = int(header1[0])
             period_length = int(header1[1])
         except Exception as e:
-            raise ValueError("Error parsing the number of customers or period length.") from e
+            raise ValueError(
+                "Error parsing the number of customers or period length."
+            ) from e
 
         # Second line: number of vehicles on each day
         vehicles_tokens = all_lines[1].split()
         if len(vehicles_tokens) != period_length:
-            raise ValueError("The number of vehicle counts provided does not equal the period length.")
+            raise ValueError(
+                "The number of vehicle counts provided does not equal the period length."
+            )
         try:
             vehicles_per_day = [int(x) for x in vehicles_tokens]
         except Exception as e:
@@ -160,7 +187,9 @@ class VRPREvaluationCB(Evaluation):
                 x = float(parts[1])
                 y = float(parts[2])
             except Exception as ex:
-                raise ValueError("Error parsing id or coordinates in line: " + line) from ex
+                raise ValueError(
+                    "Error parsing id or coordinates in line: " + line
+                ) from ex
 
             # Check for depot (id == 0). For depot, we ignore demand and schedule.
             if cid == 0:
@@ -170,11 +199,16 @@ class VRPREvaluationCB(Evaluation):
 
             # For a customer, we expect a demand value.
             if len(parts) < 4:
-                raise ValueError("Insufficient data for customer (id=%s) in line: %s" % (cid, line))
+                raise ValueError(
+                    "Insufficient data for customer (id=%s) in line: %s" % (cid, line)
+                )
             try:
                 demand = float(parts[3])
             except Exception as ex:
-                raise ValueError("Error parsing demand for customer (id=%s) in line: %s" % (cid, line)) from ex
+                raise ValueError(
+                    "Error parsing demand for customer (id=%s) in line: %s"
+                    % (cid, line)
+                ) from ex
 
             # Parse possible schedule if provided.
             schedules = []
@@ -182,27 +216,27 @@ class VRPREvaluationCB(Evaluation):
                 try:
                     schedules = ast.literal_eval(parts[4])
                 except Exception as ex:
-                    raise ValueError("Error parsing delivery schedules in line: " + line) from ex
+                    raise ValueError(
+                        "Error parsing delivery schedules in line: " + line
+                    ) from ex
 
-            customers.append({
-                "id": cid,
-                "x": x,
-                "y": y,
-                "demand": demand,
-                "schedules": schedules
-            })
+            customers.append(
+                {"id": cid, "x": x, "y": y, "demand": demand, "schedules": schedules}
+            )
 
         # Optionally, you can check if depot was found.
         if depot is None:
             raise ValueError("Depot (customer id 0) was not found in the file.")
 
-        return [{
-            "period_length": period_length,
-            "vehicles_per_day": vehicles_per_day,
-            "vehicle_capacity": vehicle_capacity,
-            "depot": depot,
-            "customers": customers
-        }]
+        return [
+            {
+                "period_length": period_length,
+                "vehicles_per_day": vehicles_per_day,
+                "vehicle_capacity": vehicle_capacity,
+                "depot": depot,
+                "customers": customers,
+            }
+        ]
 
     def eval_func(self, **kwargs):
         """
@@ -257,18 +291,25 @@ class VRPREvaluationCB(Evaluation):
             if cust["id"] == 0:
                 continue
             if cust["id"] not in selected_schedules:
-                raise ValueError(f"Missing selected schedule for customer {cust['id']}.")
+                raise ValueError(
+                    f"Missing selected schedule for customer {cust['id']}."
+                )
 
         # Now validate each provided schedule.
         for cid, sel_sched in selected_schedules.items():
             cust = customer_lookup.get(cid)
             if cust is None:
-                raise ValueError(f"Customer id {cid} in selected_schedules not found in customer list.")
+                raise ValueError(
+                    f"Customer id {cid} in selected_schedules not found in customer list."
+                )
             if sel_sched not in cust["schedules"]:
                 raise ValueError(
-                    f"Selected schedule {sel_sched} for customer {cid} is not among candidate schedules {cust['schedules']}.")
+                    f"Selected schedule {sel_sched} for customer {cid} is not among candidate schedules {cust['schedules']}."
+                )
             if len(sel_sched) != period_length:
-                raise ValueError(f"Selected schedule for customer {cid} does not match period_length {period_length}.")
+                raise ValueError(
+                    f"Selected schedule for customer {cid} does not match period_length {period_length}."
+                )
 
         # Process tours for each day.
         tours = kwargs.get("tours")
@@ -287,7 +328,8 @@ class VRPREvaluationCB(Evaluation):
             vehicles_available = vehicles_per_day[day - 1]
             if len(tours_day) > vehicles_available:
                 raise ValueError(
-                    f"On day {day}: Number of tours ({len(tours_day)}) exceeds available vehicles ({vehicles_available}).")
+                    f"On day {day}: Number of tours ({len(tours_day)}) exceeds available vehicles ({vehicles_available})."
+                )
 
             # Determine all customers that should receive service today.
             expected_customers = set()
@@ -305,24 +347,33 @@ class VRPREvaluationCB(Evaluation):
                     raise ValueError(f"Tour {tour} on day {day} is too short.")
                 # Check that the tour starts and ends with the depot.
                 if tour[0] != 0 or tour[-1] != 0:
-                    raise ValueError(f"Tour {tour} on day {day} must start and end at the depot (id 0).")
+                    raise ValueError(
+                        f"Tour {tour} on day {day} must start and end at the depot (id 0)."
+                    )
                 # Ensure no depot visits occur in the middle.
                 if 0 in tour[1:-1]:
-                    raise ValueError(f"Tour {tour} on day {day} contains an extra depot visit in the middle.")
+                    raise ValueError(
+                        f"Tour {tour} on day {day} contains an extra depot visit in the middle."
+                    )
 
                 seen_in_tour = set()
                 # Process customer visits in the tour (excluding depot at the beginning and end).
                 for vid in tour[1:-1]:
                     if vid in seen_in_tour:
-                        raise ValueError(f"Tour on day {day} visits customer {vid} more than once.")
+                        raise ValueError(
+                            f"Tour on day {day} visits customer {vid} more than once."
+                        )
                     seen_in_tour.add(vid)
                     visited_today.append(vid)
 
                 # Check the capacity constraint for the tour.
-                capacity_used = sum(customer_lookup[vid]["demand"] for vid in tour[1:-1])
+                capacity_used = sum(
+                    customer_lookup[vid]["demand"] for vid in tour[1:-1]
+                )
                 if capacity_used > vehicle_capacity:
                     raise ValueError(
-                        f"Tour on day {day} exceeds capacity: used {capacity_used}, capacity is {vehicle_capacity}.")
+                        f"Tour on day {day} exceeds capacity: used {capacity_used}, capacity is {vehicle_capacity}."
+                    )
 
                 # Compute the tour's travel distance.
                 tour_length = 0.0
@@ -330,7 +381,9 @@ class VRPREvaluationCB(Evaluation):
                 for vid in tour[1:]:
                     curr = depot if vid == 0 else customer_lookup.get(vid)
                     if curr is None:
-                        raise ValueError(f"Customer id {vid} in tour on day {day} not found.")
+                        raise ValueError(
+                            f"Customer id {vid} in tour on day {day} not found."
+                        )
                     tour_length += euclidean(prev, curr)
                     prev = curr
                 total_length += tour_length
@@ -342,7 +395,9 @@ class VRPREvaluationCB(Evaluation):
                 err_msg = f"On day {day}: "
                 if missing:
                     # Only showing a sample of missing customers
-                    err_msg += f"Missing visits for customers such as {list(missing)[:10]}. "
+                    err_msg += (
+                        f"Missing visits for customers such as {list(missing)[:10]}. "
+                    )
                 if extra:
                     err_msg += f"Extra visits for customers {list(extra)}."
                 raise ValueError(err_msg)
@@ -380,15 +435,12 @@ class VRPREvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'prvp1.txt': [], 'prvp3.txt': [], 'prvp5.txt': [],
-               'prvp7.txt': [], 'prvp9.txt': []}
+        dev = {
+            "prvp1.txt": [],
+            "prvp3.txt": [],
+            "prvp5.txt": [],
+            "prvp7.txt": [],
+            "prvp9.txt": [],
+        }
 
         return dev
-
-
-
-
-
-
-
-

@@ -7,12 +7,13 @@ from __future__ import annotations
 from typing import Any
 
 import numpy as np
+from generate_weibull_instances import generate_weibull_dataset
+from template import task_description, template_program
 
 from llm4ad.base import Evaluation
-from template import template_program, task_description
-from generate_weibull_instances import generate_weibull_dataset
 
-__all__ = ['OBPEvaluation']
+__all__ = ["OBPEvaluation"]
+
 
 def get_valid_bin_indices(item: float, bins: np.ndarray) -> np.ndarray:
     """Returns indices of bins in which item can fit."""
@@ -20,7 +21,7 @@ def get_valid_bin_indices(item: float, bins: np.ndarray) -> np.ndarray:
 
 
 def online_binpack(
-        items: tuple[float, ...], bins: np.ndarray, priority: callable
+    items: tuple[float, ...], bins: np.ndarray, priority: callable
 ) -> tuple[list[list[float, ...], ...], np.ndarray]:
     """Performs online binpacking of `items` into `bins`."""
     # Track which items are added to each bin.
@@ -47,11 +48,11 @@ def evaluate(instances: dict, priority: callable) -> float:
     # Perform online binpacking for each instance.
     for name in instances:
         instance = instances[name]
-        capacity = instance['capacity']
-        items = instance['items']
+        capacity = instance["capacity"]
+        items = instance["items"]
         # Create num_items bins so there will always be space for all items,
         # regardless of packing order. Array has shape (num_items,).
-        bins = np.array([capacity for _ in range(instance['num_items'])])
+        bins = np.array([capacity for _ in range(instance["num_items"])])
         # Pack items into bins and return remaining capacity in bins_packed, which
         # has shape (num_items,).
         _, bins_packed = online_binpack(items, bins, priority)
@@ -66,7 +67,13 @@ def evaluate(instances: dict, priority: callable) -> float:
 class OBPEvaluation(Evaluation):
     """Evaluator for online bin packing problem."""
 
-    def __init__(self, timeout_seconds=20, data_file='weibull_train.pkl', data_key='weibull_5k_train', **kwargs):
+    def __init__(
+        self,
+        timeout_seconds=20,
+        data_file="weibull_train.pkl",
+        data_key="weibull_5k_train",
+        **kwargs,
+    ):
         """
         Args:
             - 'data_file' (str): The data file to load (default is 'weibull_5k_train.pkl').
@@ -81,7 +88,7 @@ class OBPEvaluation(Evaluation):
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         self._datasets = generate_weibull_dataset(5, 5000, 100)

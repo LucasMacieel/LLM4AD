@@ -16,5 +16,7 @@ def equation(b: np.ndarray, s: np.ndarray, temp: np.ndarray, pH: np.ndarray, par
     return params[0] * b + params[1] * s + params[2] * temp + params[3] * pH + params[4]
 '''
 
-task_description = ("Find the mathematical function skeleton that represents E. Coli bacterial growth rate, "
-                    "given data on population density, substrate concentration, temperature, and pH level.")
+task_description = (
+    "Find the mathematical function skeleton that represents E. Coli bacterial growth rate, "
+    "given data on population density, substrate concentration, temperature, and pH level."
+)

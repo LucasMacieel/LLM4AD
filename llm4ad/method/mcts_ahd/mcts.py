@@ -23,12 +23,24 @@
 # --------------------------------------------------------------------------
 
 from __future__ import annotations
+
 import math
 
 
 class MCTSNode:
-    def __init__(self, algorithm, code, obj, depth=0, individual=None, is_root=False, parent=None, visit=0,
-                 raw_info=None, Q=0):
+    def __init__(
+        self,
+        algorithm,
+        code,
+        obj,
+        depth=0,
+        individual=None,
+        is_root=False,
+        parent=None,
+        visit=0,
+        raw_info=None,
+        Q=0,
+    ):
         self.algorithm = algorithm
         self.code = code
         self.parent = parent
@@ -56,7 +68,9 @@ class MCTS:
         self.q_max = -10000
         self.rank_list = []
 
-        self.root = MCTSNode(algorithm=root_answer, code=root_answer, depth=0, obj=0, is_root=True)
+        self.root = MCTSNode(
+            algorithm=root_answer, code=root_answer, depth=0, obj=0, is_root=True
+        )
 
         # Logs
         self.critiques = []
@@ -73,19 +87,26 @@ class MCTS:
         parent = node.parent
         while parent:
             best_child_Q = max(child.Q for child in parent.children)
-            parent.Q = parent.Q * (1 - self.discount_factor) + best_child_Q * self.discount_factor
+            parent.Q = (
+                parent.Q * (1 - self.discount_factor)
+                + best_child_Q * self.discount_factor
+            )
             parent.visits += 1
-            if parent.code != 'Root' and parent.parent.code == 'Root':
+            if parent.code != "Root" and parent.parent.code == "Root":
                 parent.subtree.append(node)
             parent = parent.parent
 
     def uct(self, node: MCTSNode, eval_remain):
         self.exploration_constant = (self.exploration_constant_0) * eval_remain
-        return (node.Q - self.q_min) / (self.q_max - self.q_min) + self.exploration_constant * math.sqrt(
+        return (node.Q - self.q_min) / (
+            self.q_max - self.q_min
+        ) + self.exploration_constant * math.sqrt(
             math.log(node.parent.visits + 1) / node.visits
         )
 
     def is_fully_expanded(self, node: MCTSNode):
-        return len(node.children) >= self.max_children or any(
-            child.Q > node.Q for child in node.children
-        ) or node.code == 'Root'
+        return (
+            len(node.children) >= self.max_children
+            or any(child.Q > node.Q for child in node.children)
+            or node.code == "Root"
+        )

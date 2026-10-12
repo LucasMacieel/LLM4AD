@@ -3,23 +3,23 @@
 # This file is part of the LLM4AD project (https://github.com/Optima-CityU/llm4ad).
 #
 # Reference:
-#   - Bernardino Romera-Paredes, Mohammadamin Barekatain, Alexander Novikov, Matej Balog, M. Pawan Kumar, Emilien Dupont, Francisco JR Ruiz et al. 
-#       "Mathematical discoveries from program search with large language models." 
+#   - Bernardino Romera-Paredes, Mohammadamin Barekatain, Alexander Novikov, Matej Balog, M. Pawan Kumar, Emilien Dupont, Francisco JR Ruiz et al.
+#       "Mathematical discoveries from program search with large language models."
 #       Nature 625, no. 7995 (2024): 468-475.
-# 
+#
 # ------------------------------- Copyright --------------------------------
 # Copyright (c) 2025 Optima Group.
-# 
-# Permission is granted to use the LLM4AD platform for research purposes. 
-# All publications, software, or other works that utilize this platform 
-# or any part of its codebase must acknowledge the use of "LLM4AD" and 
+#
+# Permission is granted to use the LLM4AD platform for research purposes.
+# All publications, software, or other works that utilize this platform
+# or any part of its codebase must acknowledge the use of "LLM4AD" and
 # cite the following reference:
-# 
-# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#
+# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 # with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
-# 
-# For inquiries regarding commercial use or licensing, please contact 
+#
+# For inquiries regarding commercial use or licensing, please contact
 # http://www.llm4ad.com/contact.html
 # --------------------------------------------------------------------------
 
@@ -27,31 +27,33 @@ from __future__ import annotations
 
 import concurrent.futures
 import time
-from threading import Thread
 import traceback
-from typing import Optional, Literal
+from threading import Thread
+from typing import Literal, Optional
 
+from ...base import *
+from ...tools.profiler import ProfilerBase
 from . import programs_database
 from .config import ProgramsDatabaseConfig
-from ...base import *
 from .profiler import FunSearchProfiler
-from ...tools.profiler import ProfilerBase
 
 
 class FunSearch:
-    def __init__(self,
-                 llm: LLM,
-                 evaluation: Evaluation,
-                 profiler: ProfilerBase = None,
-                 num_samplers: int = 4,
-                 num_evaluators: int = 4,
-                 samples_per_prompt: int = 4,
-                 max_sample_nums: Optional[int] = 20,
-                 *,
-                 resume_mode: bool = False,
-                 debug_mode: bool = False,
-                 multi_thread_or_process_eval: Literal['thread', 'process'] = 'thread',
-                 **kwargs):
+    def __init__(
+        self,
+        llm: LLM,
+        evaluation: Evaluation,
+        profiler: ProfilerBase = None,
+        num_samplers: int = 4,
+        num_evaluators: int = 4,
+        samples_per_prompt: int = 4,
+        max_sample_nums: Optional[int] = 20,
+        *,
+        resume_mode: bool = False,
+        debug_mode: bool = False,
+        multi_thread_or_process_eval: Literal["thread", "process"] = "thread",
+        **kwargs,
+    ):
         """Function Search.
         Args:
             llm             : an instance of 'llm4ad.base.LLM', which provides the way to query LLM.
@@ -79,16 +81,18 @@ class FunSearch:
         self._resume_mode = resume_mode
 
         # function to be evolved
-        self._function_to_evolve: Function = TextFunctionProgramConverter.text_to_function(self._template_program_str)
+        self._function_to_evolve: Function = (
+            TextFunctionProgramConverter.text_to_function(self._template_program_str)
+        )
         self._function_to_evolve_name: str = self._function_to_evolve.name
-        self._template_program: Program = TextFunctionProgramConverter.text_to_program(self._template_program_str)
+        self._template_program: Program = TextFunctionProgramConverter.text_to_program(
+            self._template_program_str
+        )
 
         # population, sampler, and evaluator
         self.db_config = ProgramsDatabaseConfig()
         self._database = programs_database.ProgramsDatabase(
-            self.db_config,
-            self._template_program,
-            self._function_to_evolve_name
+            self.db_config, self._template_program, self._function_to_evolve_name
         )
         self._sampler = SampleTrimmer(llm)
         llm.debug_mode = debug_mode
@@ -99,8 +103,8 @@ class FunSearch:
         self._tot_sample_nums = 0
 
         # multi-thread executor for evaluation
-        assert multi_thread_or_process_eval in ['thread', 'process']
-        if multi_thread_or_process_eval == 'thread':
+        assert multi_thread_or_process_eval in ["thread", "process"]
+        if multi_thread_or_process_eval == "thread":
             self._evaluation_executor = concurrent.futures.ThreadPoolExecutor(
                 max_workers=self._num_evaluators
             )
@@ -111,7 +115,8 @@ class FunSearch:
 
         # threads for sampling
         self._sampler_threads = [
-            Thread(target=self._sample_evaluate_register) for _ in range(self._num_samplers)
+            Thread(target=self._sample_evaluate_register)
+            for _ in range(self._num_samplers)
         ]
 
         # pass parameters to profiler
@@ -119,7 +124,9 @@ class FunSearch:
             self._profiler.record_parameters(llm, evaluation, self)  # ZL: necessary
 
     def _sample_evaluate_register(self):
-        while (self._max_sample_nums is None) or (self._tot_sample_nums < self._max_sample_nums):
+        while (self._max_sample_nums is None) or (
+            self._tot_sample_nums < self._max_sample_nums
+        ):
             try:
                 # get prompt
                 prompt = self._database.get_prompt()
@@ -134,7 +141,9 @@ class FunSearch:
                 # convert samples to program instances
                 programs_to_be_eval = []
                 for func in sampled_funcs:
-                    program = SampleTrimmer.sample_to_program(func, self._template_program)
+                    program = SampleTrimmer.sample_to_program(
+                        func, self._template_program
+                    )
                     # if sample to program success
                     if program is not None:
                         programs_to_be_eval.append(program)
@@ -142,15 +151,22 @@ class FunSearch:
                 # submit tasks to the thread pool and evaluate
                 futures = []
                 for program in programs_to_be_eval:
-                    future = self._evaluation_executor.submit(self._evaluator.evaluate_program_record_time, program)
+                    future = self._evaluation_executor.submit(
+                        self._evaluator.evaluate_program_record_time, program
+                    )
                     futures.append(future)
                 # get evaluate scores and evaluate times
                 scores_times = [f.result() for f in futures]
-                scores, times = [i[0] for i in scores_times], [i[1] for i in scores_times]
+                scores, times = (
+                    [i[0] for i in scores_times],
+                    [i[1] for i in scores_times],
+                )
 
                 # register to program database and profiler
                 island_id = prompt.island_id
-                for program, score, eval_time in zip(programs_to_be_eval, scores, times):
+                for program, score, eval_time in zip(
+                    programs_to_be_eval, scores, times
+                ):
                     # update
                     self._tot_sample_nums += 1
                     # convert to Function instance
@@ -161,9 +177,7 @@ class FunSearch:
                     # register to program database
                     if score is not None:
                         self._database.register_function(
-                            function=function,
-                            island_id=island_id,
-                            score=score
+                            function=function, island_id=island_id, score=score
                         )
                     # register to profiler
                     if self._profiler is not None:
@@ -190,16 +204,24 @@ class FunSearch:
     def run(self):
         if not self._resume_mode:
             # evaluate the template program, make sure the score of which is not 'None'
-            score, eval_time = self._evaluator.evaluate_program_record_time(program=self._template_program)
+            score, eval_time = self._evaluator.evaluate_program_record_time(
+                program=self._template_program
+            )
             if score is None:
-                raise RuntimeError('The score of the template function must not be "None".')
+                raise RuntimeError(
+                    'The score of the template function must not be "None".'
+                )
 
             # register the template program to the program database
-            self._database.register_function(function=self._function_to_evolve, island_id=None, score=score)
+            self._database.register_function(
+                function=self._function_to_evolve, island_id=None, score=score
+            )
             if self._profiler:
                 self._function_to_evolve.score = score
                 self._function_to_evolve.evaluate_time = eval_time
-                self._profiler.register_function(self._function_to_evolve, program=str(self._template_program))
+                self._profiler.register_function(
+                    self._function_to_evolve, program=str(self._template_program)
+                )
 
         # start sampling using multiple threads
         for t in self._sampler_threads:

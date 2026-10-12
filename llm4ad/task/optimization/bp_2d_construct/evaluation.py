@@ -4,7 +4,7 @@
 #               Given a set of bins and items, iteratively assign one item to feasible bins.
 #               Design the optimal heuristic in each iteration to minimize the used bins.
 #              This module is part of the LLM4AD project (https://github.com/Optima-CityU/llm4ad).
-# 
+#
 # Parameters:
 #    -   n_bins: number of bins: int (default: 10).
 #    -   n_instance: number of instances: int (default: 16).
@@ -12,53 +12,59 @@
 #    -   bin_width: width of bins: int (default: 100).
 #    -   bin_height: height of bins: int (default: 100).
 #    -   timeout_seconds: int - Maximum allowed time (in seconds) for the evaluation process (default: 60).
-# 
+#
 # References:
-#   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-#       Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+#       Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 #       with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
 #
 # ------------------------------- Copyright --------------------------------
 # Copyright (c) 2025 Optima Group.
-# 
-# Permission is granted to use the LLM4AD platform for research purposes. 
-# All publications, software, or other works that utilize this platform 
-# or any part of its codebase must acknowledge the use of "LLM4AD" and 
+#
+# Permission is granted to use the LLM4AD platform for research purposes.
+# All publications, software, or other works that utilize this platform
+# or any part of its codebase must acknowledge the use of "LLM4AD" and
 # cite the following reference:
-# 
-# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#
+# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 # with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
-# 
-# For inquiries regarding commercial use or licensing, please contact 
+#
+# For inquiries regarding commercial use or licensing, please contact
 # http://www.llm4ad.com/contact.html
 # --------------------------------------------------------------------------
 
 
 from __future__ import annotations
-from typing import List, Tuple, Callable, Any
-import numpy as np
-import matplotlib.pyplot as plt
+
+from typing import Any, Callable, List, Tuple
+
 import matplotlib.patches as patches
+import matplotlib.pyplot as plt
 
 from llm4ad.base import Evaluation
 from llm4ad.task.optimization.bp_2d_construct.get_instance import GetData
-from llm4ad.task.optimization.bp_2d_construct.template import template_program, task_description
+from llm4ad.task.optimization.bp_2d_construct.template import (
+    task_description,
+    template_program,
+)
 
-__all__ = ['BP2DEvaluation']
+__all__ = ["BP2DEvaluation"]
 
 
 class BP2DEvaluation(Evaluation):
     """Evaluator for the 2D Bin Packing Problem."""
 
-    def __init__(self,
-                 timeout_seconds: int = 120,
-                 n_bins: int = 100,
-                 n_instance: int = 8,
-                 n_items: int = 100,
-                 bin_width: int = 100,
-                 bin_height: int = 100,
-                 **kwargs):
+    def __init__(
+        self,
+        timeout_seconds: int = 120,
+        n_bins: int = 100,
+        n_instance: int = 8,
+        n_items: int = 100,
+        bin_width: int = 100,
+        bin_height: int = 100,
+        **kwargs,
+    ):
         """
         Args:
             n_bins: The number of available bins at the beginning.
@@ -67,7 +73,7 @@ class BP2DEvaluation(Evaluation):
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         self.n_instance = n_instance
@@ -75,10 +81,16 @@ class BP2DEvaluation(Evaluation):
         self.n_bins = n_bins
         self.bin_width = bin_width
         self.bin_height = bin_height
-        getData = GetData(self.n_instance, self.n_items, self.bin_width, self.bin_height)
+        getData = GetData(
+            self.n_instance, self.n_items, self.bin_width, self.bin_height
+        )
         self._datasets = getData.generate_instances()
 
-    def plot_solution(self, bins: List[List[Tuple[Tuple[int, int], Tuple[int, int]]]], bin_dimensions: Tuple[int, int]):
+    def plot_solution(
+        self,
+        bins: List[List[Tuple[Tuple[int, int], Tuple[int, int]]]],
+        bin_dimensions: Tuple[int, int],
+    ):
         """
         Plot the final packing solution for 2D bin packing.
 
@@ -90,9 +102,13 @@ class BP2DEvaluation(Evaluation):
         num_bins = sum(1 for bin_content in bins if bin_content) + 5
         bins = bins[:num_bins]
         max_bins_per_row = 5
-        num_rows = (num_bins + max_bins_per_row - 1) // max_bins_per_row  # Calculate the number of rows needed
+        num_rows = (
+            num_bins + max_bins_per_row - 1
+        ) // max_bins_per_row  # Calculate the number of rows needed
 
-        fig, axes = plt.subplots(num_rows, max_bins_per_row, figsize=(5 * max_bins_per_row, 5 * num_rows))
+        fig, axes = plt.subplots(
+            num_rows, max_bins_per_row, figsize=(5 * max_bins_per_row, 5 * num_rows)
+        )
 
         # Flatten the axes array if there are multiple rows
         if num_rows > 1:
@@ -105,27 +121,55 @@ class BP2DEvaluation(Evaluation):
             ax.set_xlim(0, bin_dimensions[0])
             ax.set_ylim(0, bin_dimensions[1])
             ax.set_title(f"Bin {i + 1}")
-            ax.set_aspect('equal')
+            ax.set_aspect("equal")
 
             # Draw the bin boundary
-            bin_rect = patches.Rectangle((0, 0), bin_dimensions[0], bin_dimensions[1], linewidth=2, edgecolor='black', facecolor='none')
+            bin_rect = patches.Rectangle(
+                (0, 0),
+                bin_dimensions[0],
+                bin_dimensions[1],
+                linewidth=2,
+                edgecolor="black",
+                facecolor="none",
+            )
             ax.add_patch(bin_rect)
 
             # Draw each item in the bin
             for corner, (width, height) in bin_content:
-                item_rect = patches.Rectangle(corner, width, height, linewidth=1, edgecolor='blue', facecolor='lightblue', alpha=0.6)
+                item_rect = patches.Rectangle(
+                    corner,
+                    width,
+                    height,
+                    linewidth=1,
+                    edgecolor="blue",
+                    facecolor="lightblue",
+                    alpha=0.6,
+                )
                 ax.add_patch(item_rect)
                 # Add text to label the item
-                ax.text(corner[0] + width / 2, corner[1] + height / 2, f"{width}x{height}", ha='center', va='center', fontsize=8)
+                ax.text(
+                    corner[0] + width / 2,
+                    corner[1] + height / 2,
+                    f"{width}x{height}",
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                )
 
         # Hide unused axes if the number of bins is not a multiple of max_bins_per_row
         for j in range(num_bins, num_rows * max_bins_per_row):
-            axes[j].axis('off')
+            axes[j].axis("off")
 
         plt.tight_layout()
         plt.show()
 
-    def pack_items_2d(self, item_dimensions: List[Tuple[int, int]], bin_dimensions: Tuple[int, int], eva: Callable, n_bins: int) -> Tuple[int, List[List[Tuple[int, int]]]]:
+    def pack_items_2d(
+        self,
+        item_dimensions: List[Tuple[int, int]],
+        bin_dimensions: Tuple[int, int],
+        eva: Callable,
+        n_bins: int,
+    ) -> Tuple[int, List[List[Tuple[int, int]]]]:
         """
         Pack items into bins using a constructive heuristic for the 2D Bin Packing Problem.
         The bins are represented as a discrete point matrix to track feasible areas.
@@ -142,9 +186,14 @@ class BP2DEvaluation(Evaluation):
             - A list of bins, where each bin is a list of item dimensions.
         """
         bins = [[] for _ in range(n_bins)]  # Initialize n_bins empty bins
-        remaining_items = item_dimensions.copy()  # Copy of item dimensions to track remaining items
+        remaining_items = (
+            item_dimensions.copy()
+        )  # Copy of item dimensions to track remaining items
         # Initialize the point matrix for each bin (0: unoccupied, 1: occupied)
-        point_matrices = [[[0 for _ in range(bin_dimensions[1])] for _ in range(bin_dimensions[0])] for _ in range(n_bins)]
+        point_matrices = [
+            [[0 for _ in range(bin_dimensions[1])] for _ in range(bin_dimensions[0])]
+            for _ in range(n_bins)
+        ]
 
         while remaining_items:
             # Use the heuristic to select the next item and bin
@@ -156,10 +205,28 @@ class BP2DEvaluation(Evaluation):
                 for x in range(bin_dimensions[0] - selected_item[0] + 1):
                     for y in range(bin_dimensions[1] - selected_item[1] + 1):
                         # Check the four edges of the item
-                        top_edge = all(point_matrices[selected_bin][x + dx][y] == 0 for dx in range(selected_item[0]))
-                        bottom_edge = all(point_matrices[selected_bin][x + dx][y + selected_item[1] - 1] == 0 for dx in range(selected_item[0]))
-                        left_edge = all(point_matrices[selected_bin][x][y + dy] == 0 for dy in range(selected_item[1]))
-                        right_edge = all(point_matrices[selected_bin][x + selected_item[0] - 1][y + dy] == 0 for dy in range(selected_item[1]))
+                        top_edge = all(
+                            point_matrices[selected_bin][x + dx][y] == 0
+                            for dx in range(selected_item[0])
+                        )
+                        bottom_edge = all(
+                            point_matrices[selected_bin][x + dx][
+                                y + selected_item[1] - 1
+                            ]
+                            == 0
+                            for dx in range(selected_item[0])
+                        )
+                        left_edge = all(
+                            point_matrices[selected_bin][x][y + dy] == 0
+                            for dy in range(selected_item[1])
+                        )
+                        right_edge = all(
+                            point_matrices[selected_bin][x + selected_item[0] - 1][
+                                y + dy
+                            ]
+                            == 0
+                            for dy in range(selected_item[1])
+                        )
 
                         if top_edge and bottom_edge and left_edge and right_edge:
                             # Place the item at this position
@@ -184,13 +251,21 @@ class BP2DEvaluation(Evaluation):
                                     (x, y),
                                     (x + selected_item[0] - 1, y),
                                     (x, y + selected_item[1] - 1),
-                                    (x + selected_item[0] - 1, y + selected_item[1] - 1)
+                                    (
+                                        x + selected_item[0] - 1,
+                                        y + selected_item[1] - 1,
+                                    ),
                                 ]
-                                if all(point_matrices[selected_bin][cx][cy] == 0 for cx, cy in corners):
+                                if all(
+                                    point_matrices[selected_bin][cx][cy] == 0
+                                    for cx, cy in corners
+                                ):
                                     # Place the item at this position
                                     for dx in range(selected_item[0]):
                                         for dy in range(selected_item[1]):
-                                            point_matrices[selected_bin][x + dx][y + dy] = 1
+                                            point_matrices[selected_bin][x + dx][
+                                                y + dy
+                                            ] = 1
                                     bins[selected_bin].append(((x, y), selected_item))
                                     placed = True
                                     break
@@ -219,9 +294,11 @@ class BP2DEvaluation(Evaluation):
         """
         total_bins = 0
 
-        for instance in self._datasets[:self.n_instance]:
+        for instance in self._datasets[: self.n_instance]:
             item_dimensions, bin_dimensions = instance
-            num_bins, _ = self.pack_items_2d(item_dimensions, bin_dimensions, eva, self.n_bins)
+            num_bins, _ = self.pack_items_2d(
+                item_dimensions, bin_dimensions, eva, self.n_bins
+            )
             total_bins += num_bins
 
         average_bins = total_bins / self.n_instance
@@ -231,9 +308,12 @@ class BP2DEvaluation(Evaluation):
         return self.evaluate_2d(callable_func)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    def determine_next_assignment(remaining_items: List[Tuple[int, int]], feasible_corners: List[List[Tuple[int, int]]]) -> Tuple[Tuple[int, int], int]:
+    def determine_next_assignment(
+        remaining_items: List[Tuple[int, int]],
+        feasible_corners: List[List[Tuple[int, int]]],
+    ) -> Tuple[Tuple[int, int], int]:
         """
         A simple heuristic function to select the next item and bin for 2D bin packing.
 
@@ -263,7 +343,6 @@ if __name__ == '__main__':
 
         return selected_item, selected_bin
 
-
     bp2d = BP2DEvaluation()
-    ave_bins = bp2d.evaluate_program('_', determine_next_assignment)
+    ave_bins = bp2d.evaluate_program("_", determine_next_assignment)
     print(ave_bins)

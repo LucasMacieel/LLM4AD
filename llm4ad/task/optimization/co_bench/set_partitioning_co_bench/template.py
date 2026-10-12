@@ -27,10 +27,12 @@ def solve(num_rows: int, num_columns: int, columns_info: dict) -> dict:
     return {"selected_columns": []}
 '''
 
-task_description = ("This problem involves solving a set partitioning instance where the goal is to choose a subset "
-                    "of columns such that each row is covered exactly once while minimizing the total cost. Each "
-                    "column is associated with a cost and covers a specific set of rows. The optimization problem is "
-                    "defined by selecting columns from a given set so that every row is covered precisely once, "
-                    "and the sum of the selected columns’ costs is minimized. If the solution fails to cover every "
-                    "row exactly once, then no score is awarded."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "This problem involves solving a set partitioning instance where the goal is to choose a subset "
+    "of columns such that each row is covered exactly once while minimizing the total cost. Each "
+    "column is associated with a cost and covers a specific set of rows. The optimization problem is "
+    "defined by selecting columns from a given set so that every row is covered precisely once, "
+    "and the sum of the selected columns’ costs is minimized. If the solution fails to cover every "
+    "row exactly once, then no score is awarded."
+    "Help me design a novel algorithm to solve this problem."
+)

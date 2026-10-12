@@ -4,14 +4,20 @@
 # end
 from __future__ import annotations
 
-from typing import Tuple, Any
+from typing import Any, Tuple
+
 import numpy as np
+
 from llm4ad.base import Evaluation
 from llm4ad.task.optimization.tsp_gls_2O.get_instance import GetData, TSPInstance
-from llm4ad.task.optimization.tsp_gls_2O.template import template_program, task_description
+from llm4ad.task.optimization.tsp_gls_2O.template import (
+    task_description,
+    template_program,
+)
+
 from .gls import guided_local_search_with_time
 
-__all__ = ['TSP_GLS_2O_Evaluation']
+__all__ = ["TSP_GLS_2O_Evaluation"]
 
 perturbation_moves = 5
 iter_limit = 1000
@@ -21,9 +27,12 @@ def calculate_cost(inst: TSPInstance, path: np.ndarray) -> float:
     # assert (np.sort(path) == np.arange(inst.n)).all(), 'Illegal path'
     return inst.distmat[path, np.roll(path, 1)].sum().item()
 
+
 def solve_with_time(inst: TSPInstance, eva) -> Tuple[float, float]:
     try:
-        result, running_time = guided_local_search_with_time(inst.distmat, inst.distmat.copy(), eva, perturbation_moves, iter_limit)
+        result, running_time = guided_local_search_with_time(
+            inst.distmat, inst.distmat.copy(), eva, perturbation_moves, iter_limit
+        )
         cost = calculate_cost(inst, result)
     except Exception as e:
         # cost, running_time = 1E10, 1E10
@@ -31,7 +40,8 @@ def solve_with_time(inst: TSPInstance, eva) -> Tuple[float, float]:
     # print(result)
     return cost, running_time
 
-def evaluate(instance_data,n_ins,prob_size, eva: callable) -> np.ndarray:
+
+def evaluate(instance_data, n_ins, prob_size, eva: callable) -> np.ndarray:
     objs = np.zeros((n_ins, 2))
 
     for i in range(n_ins):
@@ -47,20 +57,19 @@ class TSP_GLS_2O_Evaluation(Evaluation):
     """Evaluator for traveling salesman problem."""
 
     def __init__(self, **kwargs):
-
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=20
+            timeout_seconds=20,
         )
 
         self.n_instance = 16
@@ -69,15 +78,17 @@ class TSP_GLS_2O_Evaluation(Evaluation):
         self._datasets = getData.generate_instances()
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
-        return evaluate(self._datasets,self.n_instance,self.problem_size, callable_func)
-    
+        return evaluate(
+            self._datasets, self.n_instance, self.problem_size, callable_func
+        )
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import numpy as np
 
-
-    def update_edge_distance(edge_distance: np.ndarray, local_opt_tour: np.ndarray,
-                             edge_n_used: np.ndarray) -> np.ndarray:
+    def update_edge_distance(
+        edge_distance: np.ndarray, local_opt_tour: np.ndarray, edge_n_used: np.ndarray
+    ) -> np.ndarray:
         """
         Design a novel algorithm to update the distance matrix.
 
@@ -104,6 +115,6 @@ if __name__ == '__main__':
             updated_edge_distance[node2, node1] = updated_edge_distance[node1, node2]
 
         return updated_edge_distance
-    
+
     tsp = TSP_GLS_2O_Evaluation()
-    tsp.evaluate_program('_', update_edge_distance)
+    tsp.evaluate_program("_", update_edge_distance)

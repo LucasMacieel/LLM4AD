@@ -1,18 +1,20 @@
 from __future__ import annotations
 
-import math
+import traceback
 from threading import Lock
 from typing import List
-import numpy as np
-import traceback
 
-from ...base import *
+import numpy as np
 from codebleu.syntax_match import calc_syntax_match
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 
+from ...base import *
+
 
 class Population:
-    def __init__(self, pop_size, generation=0, pop: List[Function] | Population | None = None):
+    def __init__(
+        self, pop_size, generation=0, pop: List[Function] | Population | None = None
+    ):
         if pop is None:
             self._population = []
         elif isinstance(pop, list):
@@ -58,7 +60,9 @@ class Population:
                 self._next_gen_pop.append(func)
 
             # update: perform survival if reach the pop size
-            if len(self._next_gen_pop) >= self._pop_size or (len(self._next_gen_pop) >= self._pop_size // 4 and self._generation == 0):
+            if len(self._next_gen_pop) >= self._pop_size or (
+                len(self._next_gen_pop) >= self._pop_size // 4 and self._generation == 0
+            ):
                 pop = self._population + self._next_gen_pop
 
                 pop_elitist = pop + self._elitist
@@ -74,7 +78,7 @@ class Population:
 
                 for ind in pop_elitist:
                     # Convert score list/array to tuple so it can be hashed
-                    score_tuple = tuple(ind.score) 
+                    score_tuple = tuple(ind.score)
                     if score_tuple not in seen_scores:
                         unique_pop.append(ind)
                         seen_scores.add(score_tuple)
@@ -83,7 +87,9 @@ class Population:
 
                 objs = [ind.score for ind in pop_elitist]
                 objs_array = -np.array(objs)
-                nondom_idx = NonDominatedSorting().do(objs_array, only_non_dominated_front=True)
+                nondom_idx = NonDominatedSorting().do(
+                    objs_array, only_non_dominated_front=True
+                )
 
                 self._elitist = []
                 for idx in nondom_idx.tolist():
@@ -94,11 +100,17 @@ class Population:
                 for i in range(crt_pop_size):
                     for j in range(i + 1, crt_pop_size):
                         if (np.array(pop[i].score) >= np.array(pop[j].score)).all():
-                            dominated_counts[i, j] = -calc_syntax_match([pop[i].entire_code], pop[j].entire_code, 'python')
+                            dominated_counts[i, j] = -calc_syntax_match(
+                                [pop[i].entire_code], pop[j].entire_code, "python"
+                            )
                         elif (np.array(pop[j].score) >= np.array(pop[i].score)).all():
-                            dominated_counts[j, i] = -calc_syntax_match([pop[j].entire_code], pop[i].entire_code, 'python')
+                            dominated_counts[j, i] = -calc_syntax_match(
+                                [pop[j].entire_code], pop[i].entire_code, "python"
+                            )
                 dominated_counts_ = dominated_counts.sum(0)
-                self._population = [pop[i] for i in np.argsort(-dominated_counts_)[:self._pop_size]]  # minus for descending, //5 for keep the original pop_size
+                self._population = [
+                    pop[i] for i in np.argsort(-dominated_counts_)[: self._pop_size]
+                ]  # minus for descending, //5 for keep the original pop_size
                 self._next_gen_pop = []
                 self._generation += 1
 
@@ -145,9 +157,13 @@ class Population:
             for i in range(crt_pop_size):
                 for j in range(i + 1, crt_pop_size):
                     if (np.array(funcs[i].score) >= np.array(funcs[j].score)).all():
-                        dominated_counts[i, j] = -calc_syntax_match([funcs[i].entire_code], funcs[j].entire_code, 'python')
+                        dominated_counts[i, j] = -calc_syntax_match(
+                            [funcs[i].entire_code], funcs[j].entire_code, "python"
+                        )
                     elif (np.array(funcs[j].score) >= np.array(funcs[i].score)).all():
-                        dominated_counts[j, i] = -calc_syntax_match([funcs[j].entire_code], funcs[i].entire_code, 'python')
+                        dominated_counts[j, i] = -calc_syntax_match(
+                            [funcs[j].entire_code], funcs[i].entire_code, "python"
+                        )
             dominated_counts_ = dominated_counts.sum(0)
             p = np.exp(dominated_counts_) / np.exp(dominated_counts_).sum()
 

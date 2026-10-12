@@ -12,47 +12,51 @@
 #    - capacity: Maximum capacity of each bin: int (default: 100).
 #
 # References:
-#   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-#       Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+#       Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 #       with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
 #
 # ------------------------------- Copyright --------------------------------
 # Copyright (c) 2025 Optima Group.
-# 
-# Permission is granted to use the LLM4AD platform for research purposes. 
-# All publications, software, or other works that utilize this platform 
-# or any part of its codebase must acknowledge the use of "LLM4AD" and 
+#
+# Permission is granted to use the LLM4AD platform for research purposes.
+# All publications, software, or other works that utilize this platform
+# or any part of its codebase must acknowledge the use of "LLM4AD" and
 # cite the following reference:
-# 
-# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#
+# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 # with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
-# 
-# For inquiries regarding commercial use or licensing, please contact 
+#
+# For inquiries regarding commercial use or licensing, please contact
 # http://www.llm4ad.com/contact.html
 # --------------------------------------------------------------------------
 
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 from llm4ad.base import Evaluation
-from llm4ad.task.optimization.online_bin_packing.template import template_program, task_description
-from llm4ad.task.optimization.online_bin_packing.generate_weibull_instances import generate_weibull_dataset
+from llm4ad.task.optimization.online_bin_packing.generate_weibull_instances import (
+    generate_weibull_dataset,
+)
+from llm4ad.task.optimization.online_bin_packing.template import (
+    task_description,
+    template_program,
+)
 
-__all__ = ['OBPEvaluation']
+__all__ = ["OBPEvaluation"]
 
 
 class OBPEvaluation(Evaluation):
     """Evaluator for online bin packing problem."""
 
-    def __init__(self, timeout_seconds=30,
-                 n_instances=5,
-                 n_items=5000,
-                 capacity=100,
-                 **kwargs):
+    def __init__(
+        self, timeout_seconds=30, n_instances=5, n_items=5000, capacity=100, **kwargs
+    ):
         """
         Args:
             - 'data_file' (str): The data file to load (default is 'weibull_5k_train.pkl').
@@ -67,19 +71,27 @@ class OBPEvaluation(Evaluation):
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         self.n_instances = n_instances
         self.n_items = n_items
         self.capacity = capacity
 
-        self._datasets = generate_weibull_dataset(self.n_instances, self.n_items, self.capacity)
+        self._datasets = generate_weibull_dataset(
+            self.n_instances, self.n_items, self.capacity
+        )
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
         return self.evaluate(callable_func)
 
-    def plot_solution(self, bins_packed: np.ndarray, items: list, capacity: int, max_unused_bins: int = 5):
+    def plot_solution(
+        self,
+        bins_packed: np.ndarray,
+        items: list,
+        capacity: int,
+        max_unused_bins: int = 5,
+    ):
         """
         Plot the solution of the 1D Online Bin Packing Problem, omitting unused bins.
 
@@ -123,12 +135,22 @@ class OBPEvaluation(Evaluation):
                 current_position += item
 
         # Filter out bins with no items
-        bins_with_items = [bin_idx for bin_idx, items_in_bin in enumerate(item_assignment) if items_in_bin]
+        bins_with_items = [
+            bin_idx
+            for bin_idx, items_in_bin in enumerate(item_assignment)
+            if items_in_bin
+        ]
 
         # Include a sample of unused bins (if any)
-        unused_bins = [bin_idx for bin_idx, items_in_bin in enumerate(item_assignment) if not items_in_bin]
+        unused_bins = [
+            bin_idx
+            for bin_idx, items_in_bin in enumerate(item_assignment)
+            if not items_in_bin
+        ]
         if unused_bins:
-            unused_bins_sample = unused_bins[:max_unused_bins]  # Sample a subset of unused bins
+            unused_bins_sample = unused_bins[
+                :max_unused_bins
+            ]  # Sample a subset of unused bins
             bins_to_plot = bins_with_items + unused_bins_sample
         else:
             bins_to_plot = bins_with_items
@@ -137,7 +159,9 @@ class OBPEvaluation(Evaluation):
 
         # Adjust figure size based on the number of bins to plot
         bin_height = 0.5  # Height per bin in inches
-        fig_height = max(3, len(bins_to_plot) * bin_height)  # Minimum height of 3 inches
+        fig_height = max(
+            3, len(bins_to_plot) * bin_height
+        )  # Minimum height of 3 inches
 
         # Create a figure and axis
         fig, ax = plt.subplots(figsize=(10, fig_height))
@@ -145,20 +169,34 @@ class OBPEvaluation(Evaluation):
         # Plot each bin and its items
         for plot_idx, bin_idx in enumerate(bins_to_plot):
             # Plot the bin as a horizontal bar
-            ax.barh(plot_idx, capacity, height=0.6, color='lightgray', edgecolor='black', label='Bin' if plot_idx == 0 else None)
+            ax.barh(
+                plot_idx,
+                capacity,
+                height=0.6,
+                color="lightgray",
+                edgecolor="black",
+                label="Bin" if plot_idx == 0 else None,
+            )
 
             # Plot the items packed into the bin (if any)
             for position, item in item_assignment[bin_idx]:
-                ax.barh(plot_idx, item, left=position, height=0.6, color='skyblue', edgecolor='black')
+                ax.barh(
+                    plot_idx,
+                    item,
+                    left=position,
+                    height=0.6,
+                    color="skyblue",
+                    edgecolor="black",
+                )
 
         # Set axis labels and title
         ax.set_yticks(range(len(bins_to_plot)))
-        ax.set_yticklabels([f'Bin {bin_idx + 1}' for bin_idx in bins_to_plot])
-        ax.set_xlabel('Capacity')
-        ax.set_title('1D Online Bin Packing Solution')
+        ax.set_yticklabels([f"Bin {bin_idx + 1}" for bin_idx in bins_to_plot])
+        ax.set_xlabel("Capacity")
+        ax.set_title("1D Online Bin Packing Solution")
 
         # Add a legend
-        ax.legend(['Bin', 'Item'], loc='upper right')
+        ax.legend(["Bin", "Item"], loc="upper right")
 
         # Adjust layout to prevent overlap
         plt.tight_layout()
@@ -170,9 +208,9 @@ class OBPEvaluation(Evaluation):
         """Returns indices of bins in which item can fit."""
         return np.nonzero((bins - item) >= 0)[0]
 
-    def online_binpack(self,
-                       items: tuple[float, ...], bins: np.ndarray, priority: callable
-                       ) -> tuple[list[list[float, ...], ...], np.ndarray]:
+    def online_binpack(
+        self, items: tuple[float, ...], bins: np.ndarray, priority: callable
+    ) -> tuple[list[list[float, ...], ...], np.ndarray]:
         """Performs online binpacking of `items` into `bins`."""
         # Track which items are added to each bin.
         packing = [[] for _ in bins]
@@ -197,11 +235,11 @@ class OBPEvaluation(Evaluation):
         # Perform online binpacking for each instance.
         for name in self._datasets:
             instance = self._datasets[name]
-            capacity = instance['capacity']
-            items = instance['items']
+            capacity = instance["capacity"]
+            items = instance["items"]
             # Create num_items bins so there will always be space for all items,
             # regardless of packing order. Array has shape (num_items,).
-            bins = np.array([capacity for _ in range(instance['num_items'])])
+            bins = np.array([capacity for _ in range(instance["num_items"])])
             # Pack items into bins and return remaining capacity in bins_packed, which
             # has shape (num_items,).
             _, bins_packed = self.online_binpack(items, bins, priority)
@@ -214,7 +252,8 @@ class OBPEvaluation(Evaluation):
         return -np.mean(num_bins)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+
     def priority(item: float, valid_bins: np.ndarray) -> np.ndarray:
         """
         Priority function for the First-Fit Decreasing (FFD) heuristic.
@@ -230,7 +269,6 @@ if __name__ == '__main__':
         priorities = -valid_bins  # Negative because we want to maximize the priority for the smallest remaining capacity
         return priorities
 
-
     obp = OBPEvaluation()
-    ave_bins = obp.evaluate_program('_', priority)
+    ave_bins = obp.evaluate_program("_", priority)
     print(ave_bins)

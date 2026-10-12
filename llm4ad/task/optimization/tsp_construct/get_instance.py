@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class GetData():
+class GetData:
     def __init__(self, n_instance, n_cities):
         self.n_instance = n_instance
         self.n_cities = n_cities

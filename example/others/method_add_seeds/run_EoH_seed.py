@@ -2,13 +2,12 @@ from __future__ import annotations
 
 import sys
 
-sys.path.append('../../')  # This is for finding all the modules
+sys.path.append("../../")  # This is for finding all the modules
 
+from llm4ad.base import TextFunctionProgramConverter as tfpc
+from llm4ad.method.eoh import EoH, EoHProfiler
 from llm4ad.task.optimization.online_bin_packing import OBPEvaluation
 from llm4ad.tools.llm.llm_api_https import HttpsApi
-from llm4ad.method.eoh import EoH, EoHProfiler
-from llm4ad.tools.profiler import ProfilerBase, TensorboardProfiler
-from llm4ad.base import TextFunctionProgramConverter as tfpc
 
 seed1 = '''
 import numpy as np
@@ -44,40 +43,38 @@ def priority(item: float, bins: np.ndarray) -> np.ndarray:
     return scores
     '''
 
-if __name__ == '__main__':
+if __name__ == "__main__":
+    llm = HttpsApi(
+        host="xxx",  # your host endpoint, e.g., 'api.openai.com', 'api.deepseek.com'
+        key="xxx",  # your key, e.g., 'sk-abcdefghijklmn'
+        model="xxx",  # your llm, e.g., 'gpt-3.5-turbo' 'claude-3-5-sonnet-20240620'
+        timeout=120,
+    )
 
-    llm = HttpsApi(host='xxx',  # your host endpoint, e.g., 'api.openai.com', 'api.deepseek.com'
-                   key='xxx',  # your key, e.g., 'sk-abcdefghijklmn'
-                   model='xxx',  # your llm, e.g., 'gpt-3.5-turbo' 'claude-3-5-sonnet-20240620'
-                   timeout=120)
-    
     task = OBPEvaluation()
     method = EoH(
         llm=llm,
-        profiler=EoHProfiler(log_dir='logs/eoh', log_style='simple'),
+        profiler=EoHProfiler(log_dir="logs/eoh", log_style="simple"),
         evaluation=task,
         max_sample_nums=100,
         max_generations=100,
         pop_size=4,
         num_samplers=4,
         num_evaluators=4,
-        resume_mode=True
+        resume_mode=True,
     )
 
     #  seed
     seeds = [seed1, seed2]
-    
+
     # thoughts for seed（EoH uses both thought and code）
-    algorithm_ideas = [
-        'the ideas behind seed1',
-        'the ideas behind seed2'
-    ]
-    
+    algorithm_ideas = ["the ideas behind seed1", "the ideas behind seed2"]
+
     # get population
     pop = method._population
     profiler = method._profiler
 
-    # For each seed function: 
+    # For each seed function:
     # 1) evaluate
     # 2) add to population
     # 3) add to profiler
@@ -93,10 +90,10 @@ if __name__ == '__main__':
         seed.score = score
         seed.algorithm = algo
 
-        # add seed to population 
+        # add seed to population
         pop._population.append(seed)
 
-        # add seed to profiler 
+        # add seed to profiler
         profiler.register_function(seed)
 
     method.run()

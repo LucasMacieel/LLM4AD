@@ -32,7 +32,9 @@ class GetData:
         for _ in range(self.n_instance):
             # Generate random item dimensions, ensuring no item exceeds the bin dimensions
             item_widths = np.random.randint(10, self.bin_width - 10, size=self.n_items)
-            item_heights = np.random.randint(10, self.bin_height - 10, size=self.n_items)
+            item_heights = np.random.randint(
+                10, self.bin_height - 10, size=self.n_items
+            )
             item_dimensions = list(zip(item_widths, item_heights))
             bin_dimensions = (self.bin_width, self.bin_height)
             instance_data.append((item_dimensions, bin_dimensions))

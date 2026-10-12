@@ -2,7 +2,9 @@ import numpy as np
 
 
 class GetData:
-    def __init__(self, n_instance: int, n_elements: int, n_subsets: int, max_subset_size: int):
+    def __init__(
+        self, n_instance: int, n_elements: int, n_subsets: int, max_subset_size: int
+    ):
         """
         Initialize the GetData class for the Set Covering Problem.
 
@@ -36,13 +38,18 @@ class GetData:
             # Generate subsets
             subsets = []
             for _ in range(self.n_subsets):
-                subset_size = np.random.randint(1, self.max_subset_size + 1)  # Random subset size
-                subset = np.random.choice(universal_set, size=subset_size, replace=False).tolist()
+                subset_size = np.random.randint(
+                    1, self.max_subset_size + 1
+                )  # Random subset size
+                subset = np.random.choice(
+                    universal_set, size=subset_size, replace=False
+                ).tolist()
                 subsets.append(subset)
 
             instance_data.append((universal_set, subsets))
 
         return instance_data
+
 
 # # Example usage:
 # data_generator = GetData(n_instance=3, n_elements=10, n_subsets=5, max_subset_size=5)

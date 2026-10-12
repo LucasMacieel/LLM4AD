@@ -3,17 +3,17 @@
 #
 # ------------------------------- Copyright --------------------------------
 # Copyright (c) 2025 Optima Group.
-# 
-# Permission is granted to use the LLM4AD platform for research purposes. 
-# All publications, software, or other works that utilize this platform 
-# or any part of its codebase must acknowledge the use of "LLM4AD" and 
+#
+# Permission is granted to use the LLM4AD platform for research purposes.
+# All publications, software, or other works that utilize this platform
+# or any part of its codebase must acknowledge the use of "LLM4AD" and
 # cite the following reference:
-# 
-# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#
+# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 # with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
-# 
-# For inquiries regarding commercial use or licensing, please contact 
+#
+# For inquiries regarding commercial use or licensing, please contact
 # http://www.llm4ad.com/contact.html
 # --------------------------------------------------------------------------
 
@@ -24,7 +24,7 @@ import copy
 from abc import abstractmethod
 from typing import Any, List
 
-from .code import Program, Function, TextFunctionProgramConverter
+from .code import Function, Program, TextFunctionProgramConverter
 
 
 class LLM:
@@ -55,8 +55,7 @@ class LLM:
         pass
 
     def draw_samples(self, prompts: List[str | Any], *args, **kwargs) -> List[str]:
-        """Returns multiple predicted continuations of `prompt`.
-        """
+        """Returns multiple predicted continuations of `prompt`."""
         return [self.draw_sample(p, *args, **kwargs) for p in prompts]
 
     def close(self):
@@ -90,15 +89,14 @@ class SampleTrimmer:
 
     @classmethod
     def _check_indent_if_code_completion(cls, generated_code: str) -> bool:
-        """Judge if the content is generated through code completion model or instruct model.
-        """
-        generated_code = generated_code.strip('\n')
+        """Judge if the content is generated through code completion model or instruct model."""
+        generated_code = generated_code.strip("\n")
         line = generated_code.splitlines()[0]
-        if line.startswith('\t'):
+        if line.startswith("\t"):
             return True
-        if line.startswith(' ' * 2):
+        if line.startswith(" " * 2):
             return True
-        if line.startswith(' ' * 4):
+        if line.startswith(" " * 4):
             return True
         return False
 
@@ -128,21 +126,20 @@ class SampleTrimmer:
         find_def_declaration = False
         for lineno, line in enumerate(lines):
             # find the first 'def' statement in the given code
-            if line[:3] == 'def':
+            if line[:3] == "def":
                 func_body_lineno = lineno
                 find_def_declaration = True
                 break
         if find_def_declaration:
-            code = ''
-            for line in lines[func_body_lineno + 1:]:
-                code += line + '\n'
+            code = ""
+            for line in lines[func_body_lineno + 1 :]:
+                code += line + "\n"
             return code
         return generated_code
 
     @classmethod
     def auto_trim(cls, generated_code: str) -> str:
-        """Automatically trim the preface of the generated content.
-        """
+        """Automatically trim the preface of the generated content."""
         is_code_complete = cls._check_indent_if_code_completion(generated_code)
         if is_code_complete:
             return generated_code
@@ -150,7 +147,9 @@ class SampleTrimmer:
         return generated_code
 
     @classmethod
-    def sample_to_function(cls, generated_code: str, template_program: str | Program) -> Function | None:
+    def sample_to_function(
+        cls, generated_code: str, template_program: str | Program
+    ) -> Function | None:
         """Convert the generated content (with redundant component)
         to a Function instance. If the convert fails, return None.
         Please note that the modified Function instance is not executable,
@@ -162,7 +161,9 @@ class SampleTrimmer:
         return TextFunctionProgramConverter.program_to_function(program)
 
     @classmethod
-    def sample_to_program(cls, generated_code: str, template_program: str | Program) -> Program | None:
+    def sample_to_program(
+        cls, generated_code: str, template_program: str | Program
+    ) -> Program | None:
         """Convert the generated content (with redundant component)
         to a Function instance. If the convert fails, return None.
         """
@@ -170,7 +171,9 @@ class SampleTrimmer:
             generated_code = cls.trim_function_body(generated_code)
             # convert program to Program instance
             if isinstance(template_program, str):
-                template_program = TextFunctionProgramConverter.text_to_program(template_program)
+                template_program = TextFunctionProgramConverter.text_to_program(
+                    template_program
+                )
             else:
                 template_program = copy.deepcopy(template_program)
             # store a docstring copy
@@ -180,9 +183,14 @@ class SampleTrimmer:
             # ------------------------------------------------------------------------------------------------
             # Add new operation on July 7, 2024: remove redundant docstrings.
             # 1. Remove all docstrings.
-            template_program.functions[0] = cls.remove_docstrings(template_program.functions[0])
+            template_program.functions[0] = cls.remove_docstrings(
+                template_program.functions[0]
+            )
             # 2. Check if the function body is 'None'.
-            if template_program.functions[0].body == '' or template_program.functions[0].body is None:
+            if (
+                template_program.functions[0].body == ""
+                or template_program.functions[0].body is None
+            ):
                 return None
             # 3. Add the docstring copy.
             template_program.functions[0].docstring = docstr_copy
@@ -195,12 +203,11 @@ class SampleTrimmer:
 
     @classmethod
     def trim_function_body(cls, generated_code: str) -> str | None:
-        """Extracts the body of the generated function, trimming anything after it.
-        """
+        """Extracts the body of the generated function, trimming anything after it."""
         try:
             if not generated_code:
-                return ''
-            code = f'def fake_function_header():\n{generated_code}'
+                return ""
+            code = f"def fake_function_header():\n{generated_code}"
 
             # keep trying and deleting code from the end until the parser succeeds
             tree = None
@@ -209,23 +216,25 @@ class SampleTrimmer:
                     tree = ast.parse(code)
                 except SyntaxError as e:
                     # "e.lineno - 1" locates the line number of the lost python code
-                    code = '\n'.join(code.splitlines()[:e.lineno - 1])
+                    code = "\n".join(code.splitlines()[: e.lineno - 1])
 
             if not code:
                 # Nothing could be saved from `generated_code`
-                return ''
+                return ""
 
-            visitor = _FunctionLineVisitor('fake_function_header')
+            visitor = _FunctionLineVisitor("fake_function_header")
             visitor.visit(tree)
-            body_lines = code.splitlines()[1:visitor.function_end_line]
-            return '\n'.join(body_lines) + '\n\n'
+            body_lines = code.splitlines()[1 : visitor.function_end_line]
+            return "\n".join(body_lines) + "\n\n"
         except:
             return None
 
     @classmethod
     def remove_docstrings(cls, func: Function | str):
         func_ = copy.deepcopy(func)
-        func_ = TextFunctionProgramConverter.text_to_function(str(func_))  # convert to Function instance
+        func_ = TextFunctionProgramConverter.text_to_function(
+            str(func_)
+        )  # convert to Function instance
         docstring = func_.docstring
         while not (docstring == "" or docstring is None):
             func_.docstring = ""
@@ -235,7 +244,7 @@ class SampleTrimmer:
 
         if isinstance(func, Function):
             for key, value in func.__dict__.items():
-                if key != 'docstring' and key != 'body':
+                if key != "docstring" and key != "body":
                     setattr(func_, key, value)
             return func_
         else:

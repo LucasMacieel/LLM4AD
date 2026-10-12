@@ -41,16 +41,18 @@ def solve(container: tuple, n: int, cargo_vol: float, box_types: list) -> dict:
     }
 '''
 
-task_description = ("The Container Loading with Weight Restrictions problem aims to maximize the utilization of a "
-                    "container’s volume by selecting and strategically placing boxes inside it. Given a container "
-                    "with specified dimensions (length, width, height) and multiple types of boxes, "
-                    "each characterized by their dimensions, quantities, weights, and load-bearing constraints, "
-                    "the optimization goal is to determine the placement and orientation of these boxes (with each "
-                    "box allowed three possible orientations) that maximizes the ratio of total occupied box volume "
-                    "to container volume. The solution must strictly adhere to spatial constraints (boxes must fit "
-                    "entirely within the container without overlapping), load-bearing constraints (boxes must support "
-                    "the weight of boxes stacked above them according to given limits), and orientation restrictions. "
-                    "The optimization quality is evaluated by the achieved utilization metric, defined as the total "
-                    "volume of successfully placed boxes divided by the container volume; if any constraint is "
-                    "violated, the utilization score is zero."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The Container Loading with Weight Restrictions problem aims to maximize the utilization of a "
+    "container’s volume by selecting and strategically placing boxes inside it. Given a container "
+    "with specified dimensions (length, width, height) and multiple types of boxes, "
+    "each characterized by their dimensions, quantities, weights, and load-bearing constraints, "
+    "the optimization goal is to determine the placement and orientation of these boxes (with each "
+    "box allowed three possible orientations) that maximizes the ratio of total occupied box volume "
+    "to container volume. The solution must strictly adhere to spatial constraints (boxes must fit "
+    "entirely within the container without overlapping), load-bearing constraints (boxes must support "
+    "the weight of boxes stacked above them according to given limits), and orientation restrictions. "
+    "The optimization quality is evaluated by the achieved utilization metric, defined as the total "
+    "volume of successfully placed boxes divided by the container volume; if any constraint is "
+    "violated, the utilization score is zero."
+    "Help me design a novel algorithm to solve this problem."
+)

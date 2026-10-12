@@ -1,19 +1,21 @@
 from __future__ import annotations
 
-import math
+import traceback
 from threading import Lock
 from typing import List
+
 import numpy as np
-import traceback
-from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 from pymoo.operators.survival.rank_and_crowding.metrics import get_crowding_function
+from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 from pymoo.util.randomized_argsort import randomized_argsort
 
 from ...base import *
 
 
 class Population:
-    def __init__(self, pop_size, generation=0, pop: List[Function] | Population | None = None):
+    def __init__(
+        self, pop_size, generation=0, pop: List[Function] | Population | None = None
+    ):
         if pop is None:
             self._population = []
         elif isinstance(pop, list):
@@ -59,13 +61,17 @@ class Population:
                 self._next_gen_pop.append(func)
 
             # update: perform survival if reach the pop size
-            if len(self._next_gen_pop) >= self._pop_size or (len(self._next_gen_pop) >= self._pop_size//5 and self._generation == 0):
+            if len(self._next_gen_pop) >= self._pop_size or (
+                len(self._next_gen_pop) >= self._pop_size // 5 and self._generation == 0
+            ):
                 pop = self._population + self._next_gen_pop
 
                 pop_elitist = pop + self._elitist
                 objs = [ind.score for ind in pop_elitist]
                 objs_array = -np.array(objs)
-                nondom_idx = NonDominatedSorting().do(objs_array, only_non_dominated_front=True)
+                nondom_idx = NonDominatedSorting().do(
+                    objs_array, only_non_dominated_front=True
+                )
                 self._elitist = []
                 for idx in nondom_idx.tolist():
                     self._elitist.append(pop_elitist[idx])
@@ -82,33 +88,29 @@ class Population:
                 fronts = NonDominatedSorting().do(F, n_stop_if_ranked=self._pop_size)
 
                 for k, front in enumerate(fronts):
-
                     I = np.arange(len(front))
 
                     # current front sorted by crowding distance if splitting
                     if len(survivors) + len(I) > self._pop_size // 5:
-
                         # Define how many will be removed
                         n_remove = len(survivors) + len(front) - self._pop_size // 5
 
                         # re-calculate the crowding distance of the front
-                        crowding_of_front = \
-                            get_crowding_function("cd").do(
-                                F[front, :],
-                                n_remove=n_remove
-                            )
+                        crowding_of_front = get_crowding_function("cd").do(
+                            F[front, :], n_remove=n_remove
+                        )
 
-                        I = randomized_argsort(crowding_of_front, order='descending', method='numpy')
+                        I = randomized_argsort(
+                            crowding_of_front, order="descending", method="numpy"
+                        )
                         I = I[:-n_remove]
 
                     # otherwise take the whole front unsorted
                     else:
                         # calculate the crowding distance of the front
-                        crowding_of_front = \
-                            get_crowding_function("cd").do(
-                                F[front, :],
-                                n_remove=0
-                            )
+                        crowding_of_front = get_crowding_function("cd").do(
+                            F[front, :], n_remove=0
+                        )
 
                     # save rank and crowding in the individual class
                     for j, i in enumerate(front):

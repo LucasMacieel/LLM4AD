@@ -22,44 +22,49 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.constrained_guillotine_cutting_co_bench.template import template_program, task_description
 
-__all__ = ['CGCEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.constrained_guillotine_cutting_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["CGCEvaluationCB"]
 
 
 class CGCEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
-        dataset = load_subdir_as_text("CO-Bench/CO-Bench", "Constrained guillotine cutting")
+        dataset = load_subdir_as_text(
+            "CO-Bench/CO-Bench", "Constrained guillotine cutting"
+        )
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +76,17 @@ class CGCEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['m'], j['stock_length'], j['stock_width'], j['piece_types'])
-                    fitness = self.eval_func(j['m'], j['stock_length'], j['stock_width'], j['piece_types'], result['total_value'], result['placements'])
+                    result = eva(
+                        j["m"], j["stock_length"], j["stock_width"], j["piece_types"]
+                    )
+                    fitness = self.eval_func(
+                        j["m"],
+                        j["stock_length"],
+                        j["stock_width"],
+                        j["piece_types"],
+                        result["total_value"],
+                        result["placements"],
+                    )
                     fitness_list.append(fitness)
 
             return np.mean(fitness_list)  # itself is a maximize problem
@@ -129,25 +143,29 @@ class CGCEvaluationCB(Evaluation):
                     p_value = int(tokens[pos + 3])
                 except:
                     raise ValueError("Error parsing piece type data.")
-                piece_types.append({
-                    'length': p_length,
-                    'width': p_width,
-                    'max': max_count,
-                    'value': p_value
-                })
+                piece_types.append(
+                    {
+                        "length": p_length,
+                        "width": p_width,
+                        "max": max_count,
+                        "value": p_value,
+                    }
+                )
                 pos += 4
 
             case_data = {
                 "m": m,
                 "stock_length": stock_length,
                 "stock_width": stock_width,
-                "piece_types": piece_types
+                "piece_types": piece_types,
             }
             cases.append(case_data)
 
         return cases
 
-    def eval_func(self, m, stock_length, stock_width, piece_types, total_value, placements):
+    def eval_func(
+        self, m, stock_length, stock_width, piece_types, total_value, placements
+    ):
         """
         Evaluates a solution for the Fixed Orientation Guillotine Cutting problem by verifying all constraints.
         Raises an error immediately upon any constraint violation.
@@ -202,7 +220,9 @@ class CGCEvaluationCB(Evaluation):
                 if all((r[2] <= x or r[0] >= x) for r in rects):
                     left_rects = [r for r in rects if r[2] <= x]
                     right_rects = [r for r in rects if r[0] >= x]
-                    if is_guillotine(left_rects, bx, by, x, ey) and is_guillotine(right_rects, x, by, ex, ey):
+                    if is_guillotine(left_rects, bx, by, x, ey) and is_guillotine(
+                        right_rects, x, by, ex, ey
+                    ):
                         return True
 
             # Try horizontal cuts.
@@ -210,7 +230,9 @@ class CGCEvaluationCB(Evaluation):
                 if all((r[3] <= y or r[1] >= y) for r in rects):
                     bottom_rects = [r for r in rects if r[3] <= y]
                     top_rects = [r for r in rects if r[1] >= y]
-                    if is_guillotine(bottom_rects, bx, by, ex, y) and is_guillotine(top_rects, bx, y, ex, ey):
+                    if is_guillotine(bottom_rects, bx, by, ex, y) and is_guillotine(
+                        top_rects, bx, y, ex, ey
+                    ):
                         return True
 
             return False
@@ -236,18 +258,22 @@ class CGCEvaluationCB(Evaluation):
 
             # Validate piece type index (using 1-indexing).
             if type_idx < 1 or type_idx > m:
-                raise ValueError(f"Placement {idx} has invalid piece type index {type_idx}")
+                raise ValueError(
+                    f"Placement {idx} has invalid piece type index {type_idx}"
+                )
 
             # Orientation must be 0 (rotation is not allowed).
             if orient != 0:
-                raise ValueError(f"Placement {idx} has invalid orientation flag {orient}; rotation is not allowed.")
+                raise ValueError(
+                    f"Placement {idx} has invalid orientation flag {orient}; rotation is not allowed."
+                )
 
             # Retrieve expected dimensions and value.
             piece = piece_types[type_idx - 1]
-            p_length = piece['length']
-            p_width = piece['width']
-            max_allowed = piece['max']
-            p_value = piece['value']
+            p_length = piece["length"]
+            p_width = piece["width"]
+            max_allowed = piece["max"]
+            p_value = piece["value"]
 
             # Since rotation is not allowed, expected dimensions are as given.
             expected_length, expected_width = p_length, p_width
@@ -255,12 +281,19 @@ class CGCEvaluationCB(Evaluation):
             # Check that the placed dimensions match the expected dimensions.
             if placed_len != expected_length or placed_wid != expected_width:
                 raise ValueError(
-                    f"Placement {idx} dimensions ({placed_len}, {placed_wid}) do not match expected ({expected_length}, {expected_width})")
+                    f"Placement {idx} dimensions ({placed_len}, {placed_wid}) do not match expected ({expected_length}, {expected_width})"
+                )
 
             # Check boundaries: the entire piece must lie within the stock sheet.
-            if x < 0 or y < 0 or (x + placed_len) > stock_length or (y + placed_wid) > stock_width:
+            if (
+                x < 0
+                or y < 0
+                or (x + placed_len) > stock_length
+                or (y + placed_wid) > stock_width
+            ):
                 raise ValueError(
-                    f"Placement {idx} with rectangle {(x, y, x + placed_len, y + placed_wid)} is out of stock bounds (0,0) to ({stock_length},{stock_width})")
+                    f"Placement {idx} with rectangle {(x, y, x + placed_len, y + placed_wid)} is out of stock bounds (0,0) to ({stock_length},{stock_width})"
+                )
 
             # Passed validations: count the piece and add its value.
             type_counts[type_idx - 1] += 1
@@ -282,17 +315,22 @@ class CGCEvaluationCB(Evaluation):
 
         # Check that no piece type is placed more times than its allowed maximum.
         for i in range(m):
-            if type_counts[i] > piece_types[i]['max']:
+            if type_counts[i] > piece_types[i]["max"]:
                 raise ValueError(
-                    f"Piece type {i + 1} exceeds allowed count: {type_counts[i]} > {piece_types[i]['max']}")
+                    f"Piece type {i + 1} exceeds allowed count: {type_counts[i]} > {piece_types[i]['max']}"
+                )
 
         # Check the guillotine condition on the entire stock sheet.
         if not is_guillotine(rects, 0, 0, stock_length, stock_width):
-            raise ValueError("Guillotine condition violated: the placement layout is not guillotine separable.")
+            raise ValueError(
+                "Guillotine condition violated: the placement layout is not guillotine separable."
+            )
 
         # Verify that the reported total_value matches the computed total.
         if computed_value != total_value:
-            raise ValueError(f"Reported total value {total_value} does not match computed value {computed_value}.")
+            raise ValueError(
+                f"Reported total value {total_value} does not match computed value {computed_value}."
+            )
 
         return computed_value
 
@@ -320,7 +358,6 @@ class CGCEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'cgcut1.txt': [], 'cgcut2.txt': [], 'cgcut3.txt': []}
+        dev = {"cgcut1.txt": [], "cgcut2.txt": [], "cgcut3.txt": []}
 
         return dev
-

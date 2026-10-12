@@ -22,33 +22,34 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.crew_scheduling_co_bench.template import template_program, task_description
 
-__all__ = ['CSchedulingEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.crew_scheduling_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["CSchedulingEvaluationCB"]
 
 
 class CSchedulingEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
@@ -56,10 +57,12 @@ class CSchedulingEvaluationCB(Evaluation):
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +74,15 @@ class CSchedulingEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['N'], j['K'], j['time_limit'], j['tasks'], j['arcs'])
-                    fitness = self.eval_func(N=j['N'], K=j['K'], time_limit=j['time_limit'], tasks=j['tasks'], arcs=j['arcs'], crews=result['crews'])
+                    result = eva(j["N"], j["K"], j["time_limit"], j["tasks"], j["arcs"])
+                    fitness = self.eval_func(
+                        N=j["N"],
+                        K=j["K"],
+                        time_limit=j["time_limit"],
+                        tasks=j["tasks"],
+                        arcs=j["arcs"],
+                        crews=result["crews"],
+                    )
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -95,7 +105,9 @@ class CSchedulingEvaluationCB(Evaluation):
         """
         cases = []
         try:
-            lines = [line.strip() for line in input_string.split('\n') if line.strip() != '']
+            lines = [
+                line.strip() for line in input_string.split("\n") if line.strip() != ""
+            ]
         except Exception as e:
             raise ValueError("Failed to read input string: " + str(e))
 
@@ -119,15 +131,21 @@ class CSchedulingEvaluationCB(Evaluation):
             # Parse the first line: number of tasks and time limit.
             first_parts = block[0].split()
             if len(first_parts) < 2:
-                raise ValueError("The first line must contain at least two values: number of tasks and time limit.")
+                raise ValueError(
+                    "The first line must contain at least two values: number of tasks and time limit."
+                )
             try:
                 N = int(first_parts[0])
                 time_limit = float(first_parts[1])
             except Exception as e:
-                raise ValueError("Error parsing number of tasks or time limit: " + str(e))
+                raise ValueError(
+                    "Error parsing number of tasks or time limit: " + str(e)
+                )
 
             if len(block) < 1 + N:
-                raise ValueError(f"Expected {N} task lines after the first line; found {len(block) - 1}.")
+                raise ValueError(
+                    f"Expected {N} task lines after the first line; found {len(block) - 1}."
+                )
 
             tasks = {}
             # Parse tasks: next N lines.
@@ -144,7 +162,7 @@ class CSchedulingEvaluationCB(Evaluation):
 
             # Parse remaining lines: transition arcs.
             arcs = {}
-            for line in block[1 + N:]:
+            for line in block[1 + N :]:
                 parts = line.split()
                 if len(parts) < 3:
                     continue  # Ignore lines that don't have the complete triple.
@@ -179,9 +197,9 @@ class CSchedulingEvaluationCB(Evaluation):
                 k_range = range(182, 187)
             else:  # N <= 500 or larger
                 k_range = range(204, 209)
-            
+
             for k in k_range:
-                cases.append(case_data | {'K': k})
+                cases.append(case_data | {"K": k})
 
         return cases
 
@@ -213,14 +231,20 @@ class CSchedulingEvaluationCB(Evaluation):
         if K is None:
             raise ValueError("Parameter K (number of crews) is missing.")
         if len(crews) > K:
-            raise ValueError(f"Invalid solution: number of crews in solution is larger than K={K}.")
+            raise ValueError(
+                f"Invalid solution: number of crews in solution is larger than K={K}."
+            )
 
         # Validate that every task appears exactly once.
         all_tasks_in_output = [task for crew in crews for task in crew]
         if len(all_tasks_in_output) != N:
-            raise ValueError("Invalid solution: number of tasks in crews does not equal N.")
+            raise ValueError(
+                "Invalid solution: number of tasks in crews does not equal N."
+            )
         if set(all_tasks_in_output) != set(range(1, N + 1)):
-            raise ValueError("Invalid solution: tasks in crews do not match expected tasks set.")
+            raise ValueError(
+                "Invalid solution: tasks in crews do not match expected tasks set."
+            )
 
         total_cost = 0.0
 
@@ -234,7 +258,9 @@ class CSchedulingEvaluationCB(Evaluation):
             last_task = crew[-1]
             duty_time = tasks[last_task][1] - tasks[first_task][0]
             if duty_time > time_limit:
-                raise ValueError("Invalid solution: duty time for a crew exceeds the time limit.")
+                raise ValueError(
+                    "Invalid solution: duty time for a crew exceeds the time limit."
+                )
 
             # Check each consecutive pair of tasks.
             for idx in range(len(crew) - 1):
@@ -243,12 +269,15 @@ class CSchedulingEvaluationCB(Evaluation):
 
                 # Check that tasks do not overlap.
                 if tasks[current_task][1] > tasks[next_task][0]:
-                    raise ValueError(f"Invalid solution: tasks {current_task} and {next_task} overlap.")
+                    raise ValueError(
+                        f"Invalid solution: tasks {current_task} and {next_task} overlap."
+                    )
 
                 # Check that a valid transition arc exists.
                 if (current_task, next_task) not in arcs:
                     raise ValueError(
-                        f"Invalid solution: missing transition arc between tasks {current_task} and {next_task}.")
+                        f"Invalid solution: missing transition arc between tasks {current_task} and {next_task}."
+                    )
 
                 # Add the transition cost.
                 total_cost += arcs[(current_task, next_task)]
@@ -257,16 +286,16 @@ class CSchedulingEvaluationCB(Evaluation):
 
     def norm_score(self, results):
         optimal_scores = {
-            'csp50.txt': [3139, 2706, 2399, 2092, 1872],
-            'csp100.txt': [4812, 4514, 4310, 4107, 3905],
-            'csp150.txt': [6275, 5999, 5754, 5551, 5347],
-            'csp200.txt': [6914, 6747, 6583, 6430, 6288],
-            'csp250.txt': [8406, 8212, 8023, 7863, 7707],
-            'csp300.txt': [9580, 9378, 9200, 9026],
-            'csp350.txt': [10991, 10833, 10677, 10525, 10378],
-            'csp400.txt': [12341, 12163, 12006, 11848, 11696],
-            'csp450.txt': [12785, 12639, 12497, 12357, 12232],
-            'csp500.txt': [13302, 13169, 13032, 12899, 12772],
+            "csp50.txt": [3139, 2706, 2399, 2092, 1872],
+            "csp100.txt": [4812, 4514, 4310, 4107, 3905],
+            "csp150.txt": [6275, 5999, 5754, 5551, 5347],
+            "csp200.txt": [6914, 6747, 6583, 6430, 6288],
+            "csp250.txt": [8406, 8212, 8023, 7863, 7707],
+            "csp300.txt": [9580, 9378, 9200, 9026],
+            "csp350.txt": [10991, 10833, 10677, 10525, 10378],
+            "csp400.txt": [12341, 12163, 12006, 11848, 11696],
+            "csp450.txt": [12785, 12639, 12497, 12357, 12232],
+            "csp500.txt": [13302, 13169, 13032, 12899, 12772],
         }
 
         normed = {}
@@ -286,11 +315,17 @@ class CSchedulingEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'csp100.txt': [2, 1], 'csp150.txt': [1, 4], 'csp200.txt': [4, 2], 'csp250.txt': [2, 1],
-               'csp300.txt': [2, 0],
-               'csp350.txt': [4, 3], 'csp400.txt': [2, 0], 'csp450.txt': [2, 1], 'csp50.txt': [1, 0],
-               'csp500.txt': [4, 1]}
+        dev = {
+            "csp100.txt": [2, 1],
+            "csp150.txt": [1, 4],
+            "csp200.txt": [4, 2],
+            "csp250.txt": [2, 1],
+            "csp300.txt": [2, 0],
+            "csp350.txt": [4, 3],
+            "csp400.txt": [2, 0],
+            "csp450.txt": [2, 1],
+            "csp50.txt": [1, 0],
+            "csp500.txt": [4, 1],
+        }
 
         return dev
-
-

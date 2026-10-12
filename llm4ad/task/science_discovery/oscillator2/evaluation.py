@@ -36,34 +36,39 @@
 from __future__ import annotations
 
 from typing import Any
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 from llm4ad.base import Evaluation
-from llm4ad.task.science_discovery.oscillator2.template import template_program, task_description
 from llm4ad.task.science_discovery.oscillator2 import train
+from llm4ad.task.science_discovery.oscillator2.template import (
+    task_description,
+    template_program,
+)
 
-__all__ = ['OscillatorEvaluation2']
+__all__ = ["OscillatorEvaluation2"]
 
 MAX_NPARAMS = 10
 params = [1.0] * MAX_NPARAMS
 
 
 def evaluate(data: dict, equation: callable) -> float | None:
-    """ Evaluate the equation on data observations."""
+    """Evaluate the equation on data observations."""
 
     # Load data observations
-    inputs, outputs = data['inputs'], data['outputs']
+    inputs, outputs = data["inputs"], data["outputs"]
     t, x, v = inputs[:, 0], inputs[:, 1], inputs[:, 2]
 
     # Optimize parameters based on data
     from scipy.optimize import minimize
+
     def loss(params):
         y_pred = equation(t, x, v, params)
         return np.mean((y_pred - outputs) ** 2)
 
     loss_partial = lambda params: loss(params)
-    result = minimize(loss_partial, [1.0] * MAX_NPARAMS, method='BFGS')
+    result = minimize(loss_partial, [1.0] * MAX_NPARAMS, method="BFGS")
 
     # Return evaluation score
     optimized_params = result.x
@@ -76,13 +81,12 @@ def evaluate(data: dict, equation: callable) -> float | None:
 
 
 class OscillatorEvaluation2(Evaluation):
-
     def __init__(self, timeout_seconds=20, **kwargs):
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # read csv
@@ -91,15 +95,18 @@ class OscillatorEvaluation2(Evaluation):
         data = np.array(df)
         X = data[:, :-1]
         y = data[:, -1].reshape(-1)
-        self._datasets = {'inputs': X, 'outputs': y}
+        self._datasets = {"inputs": X, "outputs": y}
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
         return evaluate(self._datasets, callable_func)
 
 
-if __name__ == '__main__':
-    def equation(t: np.ndarray, x: np.ndarray, v: np.ndarray, params: np.ndarray) -> np.ndarray:
-        """ Mathematical function for acceleration in a damped nonlinear oscillator
+if __name__ == "__main__":
+
+    def equation(
+        t: np.ndarray, x: np.ndarray, v: np.ndarray, params: np.ndarray
+    ) -> np.ndarray:
+        """Mathematical function for acceleration in a damped nonlinear oscillator
 
         Args:
             t: A numpy array representing time.
@@ -110,10 +117,9 @@ if __name__ == '__main__':
         Return:
             A numpy array representing acceleration as the result of applying the mathematical function to the inputs.
         """
-        dv = params[0] * t + params[1] * x + params[2] * v + + params[3]
+        dv = params[0] * t + params[1] * x + params[2] * v + +params[3]
         return dv
 
-
     eval = OscillatorEvaluation2()
-    res = eval.evaluate_program('', equation)
+    res = eval.evaluate_program("", equation)
     print(res)

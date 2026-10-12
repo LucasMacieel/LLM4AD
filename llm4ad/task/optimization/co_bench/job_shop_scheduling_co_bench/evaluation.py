@@ -22,33 +22,34 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.job_shop_scheduling_co_bench.template import template_program, task_description
 
-__all__ = ['JSSEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.job_shop_scheduling_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["JSSEvaluationCB"]
 
 
 class JSSEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
@@ -56,10 +57,12 @@ class JSSEvaluationCB(Evaluation):
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +74,18 @@ class JSSEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['n_jobs'], j['n_machines'], j['times'], j['machines'])
-                    fitness = self.eval_func(j['n_jobs'], j['n_machines'], j['times'], j['machines'], result['start_times'], lower_bound=j['lower_bound'], upper_bound=j['upper_bound'])
+                    result = eva(
+                        j["n_jobs"], j["n_machines"], j["times"], j["machines"]
+                    )
+                    fitness = self.eval_func(
+                        j["n_jobs"],
+                        j["n_machines"],
+                        j["times"],
+                        j["machines"],
+                        result["start_times"],
+                        lower_bound=j["lower_bound"],
+                        upper_bound=j["upper_bound"],
+                    )
                     fitness_list.append(fitness)
 
             return np.mean(fitness_list)
@@ -83,7 +96,9 @@ class JSSEvaluationCB(Evaluation):
 
     def load_data(self, input_string):
         cases = []
-        lines = [line.strip() for line in input_string.split('\n') if line.strip()]  # remove blank lines
+        lines = [
+            line.strip() for line in input_string.split("\n") if line.strip()
+        ]  # remove blank lines
 
         i = 0
         while i < len(lines):
@@ -111,19 +126,26 @@ class JSSEvaluationCB(Evaluation):
                     # Each line should contain n_machines numbers
                     time_line = list(map(int, lines[i].split()))
                     if len(time_line) != n_machines:
-                        raise ValueError(f"Expected {n_machines} numbers in times row, got {len(time_line)}")
+                        raise ValueError(
+                            f"Expected {n_machines} numbers in times row, got {len(time_line)}"
+                        )
                     times.append(time_line)
                     i += 1
 
                 # Find the "Machines" section
                 if i >= len(lines) or not lines[i].lower().startswith("machines"):
-                    raise ValueError("Expected 'Machines' section, got: " + (lines[i] if i < len(lines) else "EOF"))
+                    raise ValueError(
+                        "Expected 'Machines' section, got: "
+                        + (lines[i] if i < len(lines) else "EOF")
+                    )
                 i += 1  # move to first line of machines
                 machines = []
                 for _ in range(n_jobs):
                     machine_line = list(map(int, lines[i].split()))
                     if len(machine_line) != n_machines:
-                        raise ValueError(f"Expected {n_machines} numbers in machines row, got {len(machine_line)}")
+                        raise ValueError(
+                            f"Expected {n_machines} numbers in machines row, got {len(machine_line)}"
+                        )
                     machines.append(machine_line)
                     i += 1
 
@@ -136,7 +158,7 @@ class JSSEvaluationCB(Evaluation):
                     "upper_bound": upper_bound,
                     "lower_bound": lower_bound,
                     "times": times,
-                    "machines": machines
+                    "machines": machines,
                 }
                 cases.append(case)
             else:
@@ -166,10 +188,14 @@ class JSSEvaluationCB(Evaluation):
 
         # Check that start_times dimensions match the problem dimensions.
         if len(start_times) != n_jobs:
-            raise ValueError(f"Expected start_times to have {n_jobs} rows, got {len(start_times)}")
+            raise ValueError(
+                f"Expected start_times to have {n_jobs} rows, got {len(start_times)}"
+            )
         for i, row in enumerate(start_times):
             if len(row) != n_machines:
-                raise ValueError(f"Expected start_times row {i} to have {n_machines} entries, got {len(row)}")
+                raise ValueError(
+                    f"Expected start_times row {i} to have {n_machines} entries, got {len(row)}"
+                )
             for t in row:
                 if t < 0:
                     raise ValueError("Start times must be non-negative.")
@@ -188,7 +214,8 @@ class JSSEvaluationCB(Evaluation):
                     # For subsequent operations, the start time must be no earlier than the finish of the previous.
                     if st < current_time:
                         raise ValueError(
-                            f"Job {i} operation {j} starts at {st} but previous operation finishes at {current_time}")
+                            f"Job {i} operation {j} starts at {st} but previous operation finishes at {current_time}"
+                        )
                     current_time = st + pt
             job_completion_times.append(current_time)
 
@@ -213,22 +240,26 @@ class JSSEvaluationCB(Evaluation):
                 curr_st, curr_finish, curr_job, curr_op = ops_sorted[k]
                 if prev_finish > curr_st:
                     raise ValueError(
-                        f"Machine {machine_id}: Operation from job {prev_job}, op {prev_op} (finishing at {prev_finish}) overlaps with job {curr_job}, op {curr_op} (starting at {curr_st}).")
+                        f"Machine {machine_id}: Operation from job {prev_job}, op {prev_op} (finishing at {prev_finish}) overlaps with job {curr_job}, op {curr_op} (starting at {curr_st})."
+                    )
 
         # Compute the makespan as the maximum completion time among all jobs.
         makespan = max(job_completion_times)
 
-        score = kwargs['lower_bound'] / makespan
+        score = kwargs["lower_bound"] / makespan
 
         return score
 
     def get_dev(self):
-        dev = {'tai100_20.txt': [1, 8, 0, 6, 9], 'tai15_15.txt': [1, 8, 9, 4, 5], 'tai20_15.txt': [2, 7, 0, 8, 3],
-               'tai20_20.txt': [9, 7, 8, 3, 0], 'tai30_15.txt': [8, 7, 2, 5, 1], 'tai30_20.txt': [0, 5, 1, 4, 6],
-               'tai50_15.txt': [9, 1, 4, 5, 6], 'tai50_20.txt': [5, 9, 7, 4, 8]}
+        dev = {
+            "tai100_20.txt": [1, 8, 0, 6, 9],
+            "tai15_15.txt": [1, 8, 9, 4, 5],
+            "tai20_15.txt": [2, 7, 0, 8, 3],
+            "tai20_20.txt": [9, 7, 8, 3, 0],
+            "tai30_15.txt": [8, 7, 2, 5, 1],
+            "tai30_20.txt": [0, 5, 1, 4, 6],
+            "tai50_15.txt": [9, 1, 4, 5, 6],
+            "tai50_20.txt": [5, 9, 7, 4, 8],
+        }
 
         return dev
-
-
-
-

@@ -2,9 +2,7 @@
 # Last Revision: 2025/07/14
 # Description: Generates DTLZ4 problem instances for MOEAD evaluation.
 #              This module is part of the LLM4AD project (https://github.com/Optima-CityU/llm4ad).
-import pickle
 
-import numpy as np
 
 from pymoo.problems import get_problem
 
@@ -33,6 +31,7 @@ from pymoo.problems import get_problem
 #         k = 2 * (self.n_obj - 1)
 #         return get_problem("wfg1", n_var=self.n_var, n_obj=self.n_obj, k=k)
 
+
 class GetData:
     def __init__(self, n_var, n_obj):
         """
@@ -51,7 +50,7 @@ class GetData:
         return get_problem("DTLZ4", n_var=self.n_var, n_obj=self.n_obj)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Demonstrate the use of the GetData class
     print("--- Demonstrating GetData Class ---")
     gd = GetData(n_var=10, n_obj=3)

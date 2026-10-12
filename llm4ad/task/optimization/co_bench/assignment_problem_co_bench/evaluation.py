@@ -22,34 +22,36 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.assignment_problem_co_bench.template import template_program, task_description
 
-__all__ = ['APEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.assignment_problem_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["APEvaluationCB"]
 
 
 class APEvaluationCB(Evaluation):
     """Evaluator for assignment problem."""
 
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
@@ -57,10 +59,12 @@ class APEvaluationCB(Evaluation):
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -72,8 +76,13 @@ class APEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['n'], j['cost_matrix'])
-                    fitness = self.eval_func(n=j['n'], cost_matrix=j['cost_matrix'], total_cost=result['total_cost'], assignment=result['assignment'])
+                    result = eva(j["n"], j["cost_matrix"])
+                    fitness = self.eval_func(
+                        n=j["n"],
+                        cost_matrix=j["cost_matrix"],
+                        total_cost=result["total_cost"],
+                        assignment=result["assignment"],
+                    )
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -101,7 +110,7 @@ class APEvaluationCB(Evaluation):
         """
         import math
 
-        all_lines = [line.rstrip() for line in input_string.split('\n')]
+        all_lines = [line.rstrip() for line in input_string.split("\n")]
 
         # Group lines into cases using blank lines as delimiters.
         cases = []
@@ -123,7 +132,9 @@ class APEvaluationCB(Evaluation):
             try:
                 n = int(block[0])
             except Exception as e:
-                raise ValueError("The first line of each case must be an integer representing n.") from e
+                raise ValueError(
+                    "The first line of each case must be an integer representing n."
+                ) from e
 
             tokens = []
             for line in block[1:]:
@@ -144,9 +155,13 @@ class APEvaluationCB(Evaluation):
                         j = int(tokens[idx + 1])
                         cost = float(tokens[idx + 2])
                     except Exception as e:
-                        raise ValueError("Invalid token encountered in sparse format.") from e
+                        raise ValueError(
+                            "Invalid token encountered in sparse format."
+                        ) from e
                     if not (1 <= i <= n and 1 <= j <= n):
-                        raise ValueError(f"Indices out of range in sparse format: i={i}, j={j}.")
+                        raise ValueError(
+                            f"Indices out of range in sparse format: i={i}, j={j}."
+                        )
                     cost_matrix[i - 1][j - 1] = cost
                 # Set unspecified assignments.
                 for i in range(n):
@@ -156,7 +171,8 @@ class APEvaluationCB(Evaluation):
                     cost_matrix[i][np.isinf(cost_matrix[i])] = max_finite * 1000
             else:
                 raise ValueError(
-                    "Input case format not recognized. Expect either n*n tokens (dense) or a multiple of 3 tokens (sparse).")
+                    "Input case format not recognized. Expect either n*n tokens (dense) or a multiple of 3 tokens (sparse)."
+                )
 
             case_list.append({"n": n, "cost_matrix": cost_matrix})
         return case_list
@@ -191,19 +207,25 @@ class APEvaluationCB(Evaluation):
             raise ValueError("Solution must include an 'assignment' list.")
         for idx, pair in enumerate(kwargs["assignment"], start=1):
             if not (isinstance(pair, (list, tuple)) and len(pair) == 2):
-                raise ValueError(f"Assignment entry {idx} must be a tuple/list of two integers (i, j).")
+                raise ValueError(
+                    f"Assignment entry {idx} must be a tuple/list of two integers (i, j)."
+                )
             i_val, j_val = pair
             if i_val in assignment:
                 raise ValueError(f"Duplicate assignment for item {i_val} found.")
             if j_val in assigned_agents:
                 raise ValueError(f"Agent {j_val} assigned more than once.")
             if not (1 <= i_val <= n and 1 <= j_val <= n):
-                raise ValueError(f"Assignment indices ({i_val}, {j_val}) are out of range (must be between 1 and {n}).")
+                raise ValueError(
+                    f"Assignment indices ({i_val}, {j_val}) are out of range (must be between 1 and {n})."
+                )
             assignment[i_val] = j_val
             assigned_agents.add(j_val)
 
         if len(assignment) != n:
-            raise ValueError(f"Incomplete assignment: expected {n} assignments, but got {len(assignment)}.")
+            raise ValueError(
+                f"Incomplete assignment: expected {n} assignments, but got {len(assignment)}."
+            )
 
         # Compute the total cost based on the assignment.
         computed_total = 0.0
@@ -211,7 +233,9 @@ class APEvaluationCB(Evaluation):
             j_val = assignment[i]
             cost = cost_matrix[i - 1][j_val - 1]
             if cost == math.inf:
-                raise ValueError(f"Assignment ({i}, {j_val}) has an infinite cost, hence invalid.")
+                raise ValueError(
+                    f"Assignment ({i}, {j_val}) has an infinite cost, hence invalid."
+                )
             computed_total += cost
 
         return computed_total
@@ -249,6 +273,11 @@ class APEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'assign100.txt': [0], 'assign400.txt': [0], 'assign700.txt': [0], 'assignp3000.txt': [0]}
+        dev = {
+            "assign100.txt": [0],
+            "assign400.txt": [0],
+            "assign700.txt": [0],
+            "assignp3000.txt": [0],
+        }
 
         return dev

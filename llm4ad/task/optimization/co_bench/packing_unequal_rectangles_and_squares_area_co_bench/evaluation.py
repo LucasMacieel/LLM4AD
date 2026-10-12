@@ -23,44 +23,49 @@ from __future__ import annotations
 
 import math
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.packing_unequal_rectangles_and_squares_area_co_bench.template import template_program, task_description
 
-__all__ = ['PURSAEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.packing_unequal_rectangles_and_squares_area_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["PURSAEvaluationCB"]
 
 
 class PURSAEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
-        dataset = load_subdir_as_text("CO-Bench/CO-Bench", "Packing unequal rectangles and squares area")
+        dataset = load_subdir_as_text(
+            "CO-Bench/CO-Bench", "Packing unequal rectangles and squares area"
+        )
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -72,8 +77,25 @@ class PURSAEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['n'], j['cx'], j['cy'], j['R'], j['items'], j['shape'], j['rotation'])
-                    fitness = self.eval_func(n=j['n'], cx=j['cx'], cy=j['cy'], R=j['R'], items=j['items'], shape=j['shape'], rotation=j['rotation'], placements=result['placements'])
+                    result = eva(
+                        j["n"],
+                        j["cx"],
+                        j["cy"],
+                        j["R"],
+                        j["items"],
+                        j["shape"],
+                        j["rotation"],
+                    )
+                    fitness = self.eval_func(
+                        n=j["n"],
+                        cx=j["cx"],
+                        cy=j["cy"],
+                        R=j["R"],
+                        items=j["items"],
+                        shape=j["shape"],
+                        rotation=j["rotation"],
+                        placements=result["placements"],
+                    )
                     fitness_list.append(fitness)
 
             return np.mean(fitness_list)
@@ -102,14 +124,18 @@ class PURSAEvaluationCB(Evaluation):
              - 'items': list of tuples, where each tuple is (L, W) for the respective item.
         """
         cases = []
-        lines = [line.strip() for line in input_string.split('\n') if line.strip() != '']
+        lines = [
+            line.strip() for line in input_string.split("\n") if line.strip() != ""
+        ]
 
         i = 0
         while i < len(lines):
             # Parse header line for one case
             header_tokens = lines[i].split()
             if len(header_tokens) < 4:
-                raise ValueError("Header line must contain at least 4 values: n, cx, cy, R.")
+                raise ValueError(
+                    "Header line must contain at least 4 values: n, cx, cy, R."
+                )
             n = int(header_tokens[0])
             cx = float(header_tokens[1])
             cy = float(header_tokens[2])
@@ -127,47 +153,52 @@ class PURSAEvaluationCB(Evaluation):
                 if len(tokens) == 1:
                     side = float(tokens[0])
                     items.append((side, side))
-                    shape = 'square'
+                    shape = "square"
                 elif len(tokens) >= 2:
                     length = float(tokens[0])
                     width = float(tokens[1])
                     items.append((length, width))
-                    shape = 'rectangle'
+                    shape = "rectangle"
                 else:
                     raise ValueError(f"Item data format error at line {i + 1}.")
                 i += 1
 
             # Append the parsed case as a dictionary
-            if shape == 'rectangle':
-                cases.append({
-                    'n': n,
-                    'cx': cx,
-                    'cy': cy,
-                    'R': R,
-                    'items': items,
-                    'shape': shape,
-                    'rotation': False
-                })
-                cases.append({
-                    'n': n,
-                    'cx': cx,
-                    'cy': cy,
-                    'R': R,
-                    'items': items,
-                    'shape': shape,
-                    'rotation': True
-                })
+            if shape == "rectangle":
+                cases.append(
+                    {
+                        "n": n,
+                        "cx": cx,
+                        "cy": cy,
+                        "R": R,
+                        "items": items,
+                        "shape": shape,
+                        "rotation": False,
+                    }
+                )
+                cases.append(
+                    {
+                        "n": n,
+                        "cx": cx,
+                        "cy": cy,
+                        "R": R,
+                        "items": items,
+                        "shape": shape,
+                        "rotation": True,
+                    }
+                )
             else:
-                cases.append({
-                    'n': n,
-                    'cx': cx,
-                    'cy': cy,
-                    'R': R,
-                    'items': items,
-                    'shape': shape,
-                    'rotation': False
-
-                })
+                cases.append(
+                    {
+                        "n": n,
+                        "cx": cx,
+                        "cy": cy,
+                        "R": R,
+                        "items": items,
+                        "shape": shape,
+                        "rotation": False,
+                    }
+                )
 
         return cases
 
@@ -211,12 +242,12 @@ class PURSAEvaluationCB(Evaluation):
 
         # Unpack input data
         try:
-            n = kwargs['n']
-            cx, cy = float(kwargs['cx']), float(kwargs['cy'])
-            R = float(kwargs['R'])
-            items = kwargs['items']
-            shape = kwargs['shape'].lower()
-            rotation_allowed = bool(kwargs['rotation'])
+            n = kwargs["n"]
+            cx, cy = float(kwargs["cx"]), float(kwargs["cy"])
+            R = float(kwargs["R"])
+            items = kwargs["items"]
+            shape = kwargs["shape"].lower()
+            rotation_allowed = bool(kwargs["rotation"])
         except KeyError as e:
             raise ValueError(f"Missing input data key: {e}")
 
@@ -224,7 +255,7 @@ class PURSAEvaluationCB(Evaluation):
             raise ValueError("Length of items list must equal n.")
 
         # Unpack solution
-        placements = kwargs.get('placements', None)
+        placements = kwargs.get("placements", None)
         if placements is None:
             raise ValueError("Solution does not contain key 'placements'.")
         if not isinstance(placements, list) or len(placements) != n:
@@ -235,10 +266,12 @@ class PURSAEvaluationCB(Evaluation):
         def compute_vertices(x, y, L, W, theta_deg):
             theta = math.radians(theta_deg)
             # Local coordinates of corners before rotation:
-            local_corners = [(L / 2, W / 2),
-                             (L / 2, -W / 2),
-                             (-L / 2, W / 2),
-                             (-L / 2, -W / 2)]
+            local_corners = [
+                (L / 2, W / 2),
+                (L / 2, -W / 2),
+                (-L / 2, W / 2),
+                (-L / 2, -W / 2),
+            ]
             vertices = []
             cos_t = math.cos(theta)
             sin_t = math.sin(theta)
@@ -261,7 +294,9 @@ class PURSAEvaluationCB(Evaluation):
                 half_L, half_W = W / 2, L / 2
             else:
                 # Should not happen; safeguard.
-                raise ValueError("Invalid rotation angle. Allowed angles are 0 or 90 degrees.")
+                raise ValueError(
+                    "Invalid rotation angle. Allowed angles are 0 or 90 degrees."
+                )
             return (x - half_L, x + half_L, y - half_W, y + half_W)
 
         total_area = 0.0
@@ -273,15 +308,23 @@ class PURSAEvaluationCB(Evaluation):
             try:
                 placement = placements[i]
                 if not (isinstance(placement, (list, tuple)) and len(placement) == 3):
-                    raise ValueError(f"Placement for item {i} must be a tuple/list of three numbers.")
-                x, y, theta = float(placement[0]), float(placement[1]), float(placement[2])
+                    raise ValueError(
+                        f"Placement for item {i} must be a tuple/list of three numbers."
+                    )
+                x, y, theta = (
+                    float(placement[0]),
+                    float(placement[1]),
+                    float(placement[2]),
+                )
             except Exception as e:
                 raise ValueError(f"Invalid placement for item {i}: {e}")
 
             L, W = items[i]
             # For squares, check that L == W (within tolerance)
             if shape == "square" and abs(L - W) > tol:
-                raise ValueError(f"Item {i} is marked as square but dimensions differ: L={L}, W={W}")
+                raise ValueError(
+                    f"Item {i} is marked as square but dimensions differ: L={L}, W={W}"
+                )
 
             # Determine if the item is packed.
             # Convention: If x == -1 and y == -1, item is not placed.
@@ -294,46 +337,55 @@ class PURSAEvaluationCB(Evaluation):
             # Packed item: check rotation feasibility.
             if not rotation_allowed:
                 if abs(theta) > angle_tol:
-                    raise ValueError(f"Rotation is not allowed, but item {i} has theta = {theta}.")
+                    raise ValueError(
+                        f"Rotation is not allowed, but item {i} has theta = {theta}."
+                    )
             else:
                 # If rotation is allowed, then theta must be 0 or 90.
                 if not (abs(theta) < angle_tol or abs(theta - 90) < angle_tol):
                     raise ValueError(
-                        f"Item {i} has invalid rotation angle {theta}. Allowed values are 0 or 90 degrees.")
+                        f"Item {i} has invalid rotation angle {theta}. Allowed values are 0 or 90 degrees."
+                    )
 
             # Compute the vertices for the placed rectangle.
             vertices = compute_vertices(x, y, L, W, theta)
             # Check each vertex lies inside the container circle.
             for vx, vy in vertices:
                 # Euclidean distance from container center (cx, cy)
-                if (vx - cx) ** 2 + (vy - cy) ** 2 > R ** 2 + tol:
-                    raise ValueError(f"Item {i} has a vertex at ({vx:.4f},{vy:.4f}) outside the container.")
+                if (vx - cx) ** 2 + (vy - cy) ** 2 > R**2 + tol:
+                    raise ValueError(
+                        f"Item {i} has a vertex at ({vx:.4f},{vy:.4f}) outside the container."
+                    )
 
             # Compute axis-aligned bounding box (since rectangle is axis-aligned if theta in {0,90})
             xmin, xmax, ymin, ymax = compute_aabb(x, y, L, W, theta)
 
             # Save the item details for later overlap checking.
-            placed_items.append({
-                'index': i,
-                'aabb': (xmin, xmax, ymin, ymax),
-                'vertices': vertices,
-                'area': L * W
-            })
+            placed_items.append(
+                {
+                    "index": i,
+                    "aabb": (xmin, xmax, ymin, ymax),
+                    "vertices": vertices,
+                    "area": L * W,
+                }
+            )
             total_area += L * W
 
         # Check for pairwise overlap among all placed items.
         num_placed = len(placed_items)
         for i in range(num_placed):
-            aabb_i = placed_items[i]['aabb']
+            aabb_i = placed_items[i]["aabb"]
             xmin_i, xmax_i, ymin_i, ymax_i = aabb_i
             for j in range(i + 1, num_placed):
-                aabb_j = placed_items[j]['aabb']
+                aabb_j = placed_items[j]["aabb"]
                 xmin_j, xmax_j, ymin_j, ymax_j = aabb_j
                 # Compute overlap in x and y
                 overlap_x = max(0.0, min(xmax_i, xmax_j) - max(xmin_i, xmin_j))
                 overlap_y = max(0.0, min(ymax_i, ymax_j) - max(ymin_i, ymin_j))
                 if overlap_x * overlap_y > tol:
-                    raise ValueError(f"Items {placed_items[i]['index']} and {placed_items[j]['index']} overlap.")
+                    raise ValueError(
+                        f"Items {placed_items[i]['index']} and {placed_items[j]['index']} overlap."
+                    )
 
         return total_area
 
@@ -361,9 +413,3 @@ class PURSAEvaluationCB(Evaluation):
                     normed_scores.append(score)
             normed[case] = (normed_scores, error_message)
         return normed
-
-
-
-
-
-

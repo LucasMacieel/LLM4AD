@@ -40,14 +40,16 @@ def solve(N: int, K: int, time_limit: float, tasks: dict, arcs: dict) -> dict:
     return {"crews": crews}
 '''
 
-task_description = ("The Crew Scheduling Problem involves assigning each task—with defined start and finish times—to "
-                    "exactly one crew, aiming to minimize the total transition costs between consecutive tasks. Each "
-                    "crew’s schedule must satisfy three constraints: tasks within a crew must not overlap; valid "
-                    "transitions (with associated costs) must exist between every consecutive pair of tasks; and the "
-                    "crew’s total duty time (from the start of the first task to the finish of the last) cannot "
-                    "exceed a specified time limit. Additionally, no more than K crews can be used to cover all "
-                    "tasks. Solutions violating any of these constraints are considered infeasible and receive no "
-                    "score. The optimization objective is therefore to determine assignments of tasks to no more than "
-                    "K crews that minimize the sum of transition costs while strictly adhering to all constraints, "
-                    "yielding a feasible and cost-effective scheduling solution. "
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The Crew Scheduling Problem involves assigning each task—with defined start and finish times—to "
+    "exactly one crew, aiming to minimize the total transition costs between consecutive tasks. Each "
+    "crew’s schedule must satisfy three constraints: tasks within a crew must not overlap; valid "
+    "transitions (with associated costs) must exist between every consecutive pair of tasks; and the "
+    "crew’s total duty time (from the start of the first task to the finish of the last) cannot "
+    "exceed a specified time limit. Additionally, no more than K crews can be used to cover all "
+    "tasks. Solutions violating any of these constraints are considered infeasible and receive no "
+    "score. The optimization objective is therefore to determine assignments of tasks to no more than "
+    "K crews that minimize the sum of transition costs while strictly adhering to all constraints, "
+    "yielding a feasible and cost-effective scheduling solution. "
+    "Help me design a novel algorithm to solve this problem."
+)

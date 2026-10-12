@@ -1,7 +1,4 @@
-import os
-
 # LLM backend – Gemini is used here, but the library supports OpenAI, Ollama and DeepSeek.
-from llm4ad.tools.llm.llm_api_https import HttpsApi
 
 # LLaMEA for LLM4AD evolutionary method.
 from llm4ad.method.llamea import LLaMEA
@@ -29,11 +26,12 @@ def main():
     #     raise RuntimeError(
     #         "Missing GOOGLE_API_KEY environment variable. Please export it first."
     #     )
-    llm = LlameaLLM(host='api.bltcy.top',  # your host endpoint, e.g., 'api.openai.com', 'api.deepseek.com'
-                   key='sk-xDTKC5OtOgzmi36ytMOIBLc5T04pFCRv2R6lcOalip8v2Pf9',  # your key, e.g., 'sk-abcdefghijklmn'
-                   model='gpt-4o-mini',  # your llm, e.g., 'gpt-3.5-turbo'
-                   timeout=60)
-
+    llm = LlameaLLM(
+        host="api.bltcy.top",  # your host endpoint, e.g., 'api.openai.com', 'api.deepseek.com'
+        key="sk-xDTKC5OtOgzmi36ytMOIBLc5T04pFCRv2R6lcOalip8v2Pf9",  # your key, e.g., 'sk-abcdefghijklmn'
+        model="gpt-4o-mini",  # your llm, e.g., 'gpt-3.5-turbo'
+        timeout=60,
+    )
 
     # --- 2. Define problem evaluator ---
     # CVRPEvaluation evaluates candidate solutions for the CVRP task.
@@ -55,9 +53,9 @@ def main():
         evaluator=evaluator,
         n_parents=1,
         n_offsprings=1,
-        iterations=10,           # Keep small for demonstration
-        minimization=False,      # CVRP Evaluator here is maximization by default
-        elitism=True,            # Keep best solution each generation
+        iterations=10,  # Keep small for demonstration
+        minimization=False,  # CVRP Evaluator here is maximization by default
+        elitism=True,  # Keep best solution each generation
         role_prompt=role_prompt,
         task_prompt=task_description,
         example_prompt=template_program,

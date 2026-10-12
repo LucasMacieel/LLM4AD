@@ -42,11 +42,13 @@ def solve(n_jobs: int, n_machines: int, times: list, machines: list) -> dict:
     return solution
 '''
 
-task_description = ("The job shop scheduling problem requires assigning non-negative integer start times to a set of "
-                    "operations, structured into multiple jobs, each composed of sequential operations. Each "
-                    "operation is processed on a specific machine for a given processing time. The optimization goal "
-                    "is to minimize the makespan, defined as the maximum completion time across all jobs. Constraints "
-                    "include (i) sequential processing of operations within each job, meaning each operation cannot "
-                    "start before its preceding operation finishes, and (ii) non-overlapping scheduling of operations "
-                    "on the same machine. If these constraints are violated, the solution receives no score."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The job shop scheduling problem requires assigning non-negative integer start times to a set of "
+    "operations, structured into multiple jobs, each composed of sequential operations. Each "
+    "operation is processed on a specific machine for a given processing time. The optimization goal "
+    "is to minimize the makespan, defined as the maximum completion time across all jobs. Constraints "
+    "include (i) sequential processing of operations within each job, meaning each operation cannot "
+    "start before its preceding operation finishes, and (ii) non-overlapping scheduling of operations "
+    "on the same machine. If these constraints are violated, the solution receives no score."
+    "Help me design a novel algorithm to solve this problem."
+)

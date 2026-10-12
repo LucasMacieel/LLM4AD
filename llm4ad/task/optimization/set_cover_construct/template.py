@@ -26,7 +26,7 @@ def select_next_subset(selected_subsets: List[List[int]], remaining_subsets: Lis
 
 '''
 
-task_description = '''
+task_description = """
 The task involves selecting a minimum number of subsets from a collection that covers all elements in a universal set.
 Help me design a novel algorithm to select the next subset in each step.
-'''
+"""

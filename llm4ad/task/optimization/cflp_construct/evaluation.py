@@ -13,53 +13,59 @@
 #    - max_capacity: Maximum capacity of each facility: int (default: 100).
 #    - max_demand: Maximum demand of each customer: int (default: 20).
 #    - max_cost: Maximum cost of assigning a customer to a facility: int (default: 50).
-# 
+#
 # References:
-#   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-#       Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#   - Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+#       Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 #       with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
 #
 # ------------------------------- Copyright --------------------------------
 # Copyright (c) 2025 Optima Group.
-# 
-# Permission is granted to use the LLM4AD platform for research purposes. 
-# All publications, software, or other works that utilize this platform 
-# or any part of its codebase must acknowledge the use of "LLM4AD" and 
+#
+# Permission is granted to use the LLM4AD platform for research purposes.
+# All publications, software, or other works that utilize this platform
+# or any part of its codebase must acknowledge the use of "LLM4AD" and
 # cite the following reference:
-# 
-# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#
+# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 # with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
-# 
-# For inquiries regarding commercial use or licensing, please contact 
+#
+# For inquiries regarding commercial use or licensing, please contact
 # http://www.llm4ad.com/contact.html
 # --------------------------------------------------------------------------
 
 
 from __future__ import annotations
-from typing import Callable, Any, List, Tuple
-import numpy as np
+
+from typing import Any, Callable, List, Tuple
+
 import matplotlib.pyplot as plt
 
 from llm4ad.base import Evaluation
 from llm4ad.task.optimization.cflp_construct.get_instance import GetData
-from llm4ad.task.optimization.cflp_construct.template import template_program, task_description
+from llm4ad.task.optimization.cflp_construct.template import (
+    task_description,
+    template_program,
+)
 
-__all__ = ['CFLPEvaluation']
+__all__ = ["CFLPEvaluation"]
 
 
 class CFLPEvaluation(Evaluation):
     """Evaluator for the Capacitated Facility Location Problem."""
 
-    def __init__(self,
-                 timeout_seconds: int = 60,
-                 n_instance: int = 16,
-                 n_facilities: int = 50,
-                 n_customers: int = 50,
-                 max_capacity: int = 100,
-                 max_demand: int = 20,
-                 max_cost: int = 50,
-                 **kwargs):
+    def __init__(
+        self,
+        timeout_seconds: int = 60,
+        n_instance: int = 16,
+        n_facilities: int = 50,
+        n_customers: int = 50,
+        max_capacity: int = 100,
+        max_demand: int = 20,
+        max_cost: int = 50,
+        **kwargs,
+    ):
         """
         Initialize the evaluator.
         """
@@ -67,7 +73,7 @@ class CFLPEvaluation(Evaluation):
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         self.n_instance = n_instance
@@ -76,13 +82,26 @@ class CFLPEvaluation(Evaluation):
         self.max_capacity = max_capacity
         self.max_demand = max_demand
         self.max_cost = max_cost
-        getData = GetData(self.n_instance, self.n_facilities, self.n_customers, self.max_capacity, self.max_demand, self.max_cost)
+        getData = GetData(
+            self.n_instance,
+            self.n_facilities,
+            self.n_customers,
+            self.max_capacity,
+            self.max_demand,
+            self.max_cost,
+        )
         self._datasets = getData.generate_instances()
 
     def evaluate_program(self, program_str: str, callable_func: Callable) -> Any | None:
         return self.evaluate_cflp(callable_func)
 
-    def plot_solution(self, facility_capacities: List[int], customer_demands: List[int], assignments: List[List[int]], assignment_costs: List[List[int]]):
+    def plot_solution(
+        self,
+        facility_capacities: List[int],
+        customer_demands: List[int],
+        assignments: List[List[int]],
+        assignment_costs: List[List[int]],
+    ):
         """
         Plot the final solution of assignments for the Capacitated Facility Location Problem.
 
@@ -101,31 +120,76 @@ class CFLPEvaluation(Evaluation):
         # Plot facilities and customers
         for facility in range(n_facilities):
             # Plot facility as a rectangle
-            ax.add_patch(plt.Rectangle((facility - 0.4, -0.4), 0.8, 0.8, color='skyblue', label='Facility' if facility == 0 else None))
-            ax.text(facility, 0, f'F{facility}\nCap: {facility_capacities[facility]}', ha='center', va='center', fontsize=10)
+            ax.add_patch(
+                plt.Rectangle(
+                    (facility - 0.4, -0.4),
+                    0.8,
+                    0.8,
+                    color="skyblue",
+                    label="Facility" if facility == 0 else None,
+                )
+            )
+            ax.text(
+                facility,
+                0,
+                f"F{facility}\nCap: {facility_capacities[facility]}",
+                ha="center",
+                va="center",
+                fontsize=10,
+            )
 
             # Plot assigned customers
             for customer in assignments[facility]:
-                ax.plot([facility, customer], [0, 1], 'k--', linewidth=0.5)  # Line connecting facility to customer
-                ax.add_patch(plt.Circle((customer, 1), 0.1, color='orange', label='Customer' if facility == 0 and customer == 0 else None))
-                ax.text(customer, 1.1, f'C{customer}\nDem: {customer_demands[customer]}', ha='center', va='bottom', fontsize=8)
+                ax.plot(
+                    [facility, customer], [0, 1], "k--", linewidth=0.5
+                )  # Line connecting facility to customer
+                ax.add_patch(
+                    plt.Circle(
+                        (customer, 1),
+                        0.1,
+                        color="orange",
+                        label="Customer" if facility == 0 and customer == 0 else None,
+                    )
+                )
+                ax.text(
+                    customer,
+                    1.1,
+                    f"C{customer}\nDem: {customer_demands[customer]}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=8,
+                )
                 # Add cost as text near the line
-                ax.text((facility + customer) / 2, 0.5, f'Cost: {assignment_costs[facility][customer]}', ha='center', va='center', fontsize=8, rotation=45)
+                ax.text(
+                    (facility + customer) / 2,
+                    0.5,
+                    f"Cost: {assignment_costs[facility][customer]}",
+                    ha="center",
+                    va="center",
+                    fontsize=8,
+                    rotation=45,
+                )
 
         # Set axis limits and labels
         ax.set_xlim(-1, n_customers)
         ax.set_ylim(-0.5, 1.5)
         ax.set_xticks(range(n_customers))
         ax.set_yticks([0, 1])
-        ax.set_yticklabels(['Facilities', 'Customers'])
-        ax.set_title('Capacitated Facility Location Problem - Assignments')
-        ax.legend(loc='upper right')
+        ax.set_yticklabels(["Facilities", "Customers"])
+        ax.set_title("Capacitated Facility Location Problem - Assignments")
+        ax.legend(loc="upper right")
 
         # Show the plot
         plt.tight_layout()
         plt.show()
 
-    def assign_customers(self, facility_capacities: List[int], customer_demands: List[int], assignment_costs: List[List[int]], eva: Callable) -> Tuple[int, List[List[int]]]:
+    def assign_customers(
+        self,
+        facility_capacities: List[int],
+        customer_demands: List[int],
+        assignment_costs: List[List[int]],
+        eva: Callable,
+    ) -> Tuple[int, List[List[int]]]:
         """
         Assign customers to facilities using a constructive heuristic.
 
@@ -142,20 +206,34 @@ class CFLPEvaluation(Evaluation):
         """
         n_facilities = len(facility_capacities)
         n_customers = len(customer_demands)
-        assignments = [[] for _ in range(n_facilities)]  # Initialize empty assignments for each facility
-        remaining_customers = list(range(n_customers))  # List of remaining customer indices
-        remaining_capacities = facility_capacities.copy()  # Copy of facility capacities to track remaining capacities
+        assignments = [
+            [] for _ in range(n_facilities)
+        ]  # Initialize empty assignments for each facility
+        remaining_customers = list(
+            range(n_customers)
+        )  # List of remaining customer indices
+        remaining_capacities = (
+            facility_capacities.copy()
+        )  # Copy of facility capacities to track remaining capacities
         total_cost = 0  # Total cost of assignments
 
         while remaining_customers:
             # Use the heuristic to select the next customer-facility assignment
-            selected_customer, selected_facility = eva(assignments, remaining_customers, remaining_capacities, customer_demands, assignment_costs)
+            selected_customer, selected_facility = eva(
+                assignments,
+                remaining_customers,
+                remaining_capacities,
+                customer_demands,
+                assignment_costs,
+            )
 
             if selected_facility is not None:
                 # Assign the selected customer to the selected facility
                 assignments[selected_facility].append(selected_customer)
                 # Update the remaining capacity of the selected facility
-                remaining_capacities[selected_facility] -= customer_demands[selected_customer]
+                remaining_capacities[selected_facility] -= customer_demands[
+                    selected_customer
+                ]
                 # Add the assignment cost to the total cost
                 total_cost += assignment_costs[selected_facility][selected_customer]
             else:
@@ -181,20 +259,28 @@ class CFLPEvaluation(Evaluation):
         """
         total_cost = 0
 
-        for instance in self._datasets[:self.n_instance]:
+        for instance in self._datasets[: self.n_instance]:
             facility_capacities = instance["facility_capacities"]
             customer_demands = instance["customer_demands"]
             assignment_costs = instance["assignment_costs"]
-            cost, _ = self.assign_customers(facility_capacities, customer_demands, assignment_costs, eva)
+            cost, _ = self.assign_customers(
+                facility_capacities, customer_demands, assignment_costs, eva
+            )
             total_cost += cost
 
         average_cost = total_cost / self.n_instance
         return -average_cost
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
-    def select_next_assignment(assignments: List[List[int]], remaining_customers: List[int], remaining_capacities: List[int], customer_demands: List[int], assignment_costs: List[List[int]]) -> Tuple[int, int]:
+    def select_next_assignment(
+        assignments: List[List[int]],
+        remaining_customers: List[int],
+        remaining_capacities: List[int],
+        customer_demands: List[int],
+        assignment_costs: List[List[int]],
+    ) -> Tuple[int, int]:
         """
         Constructive heuristic for the Capacitated Facility Location Problem.
         Assigns the next customer to the facility with the lowest cost that has sufficient capacity.
@@ -214,11 +300,14 @@ if __name__ == '__main__':
         # Iterate over all remaining customers
         for customer in remaining_customers:
             # Iterate over all facilities to find the one with the lowest cost and sufficient capacity
-            min_cost = float('inf')
+            min_cost = float("inf")
             selected_facility = None
 
             for facility in range(len(remaining_capacities)):
-                if remaining_capacities[facility] >= customer_demands[customer] and assignment_costs[facility][customer] < min_cost:
+                if (
+                    remaining_capacities[facility] >= customer_demands[customer]
+                    and assignment_costs[facility][customer] < min_cost
+                ):
                     min_cost = assignment_costs[facility][customer]
                     selected_facility = facility
 
@@ -229,7 +318,6 @@ if __name__ == '__main__':
         # If no feasible assignment is found, return None
         return None, None
 
-
     bp1d = CFLPEvaluation()
-    ave_bins = bp1d.evaluate_program('_', select_next_assignment)
+    ave_bins = bp1d.evaluate_program("_", select_next_assignment)
     print(ave_bins)

@@ -24,23 +24,26 @@
 # --------------------------------------------------------------------------
 
 from __future__ import annotations
-import numpy as np
+
+import os
 import random
 import traceback
-import os
-from typing import List, Dict, Tuple, Any, Optional
 from threading import RLock
+from typing import Dict, List, Optional, Tuple
 
-from .clusterunit import ClusterUnit
-from .externalArchive import ExternalArchive
-from llm4ad.base import Function
-from .base import Evoind
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
 from codebleu import calc_codebleu
+from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
-import seaborn as sns
-import matplotlib.pyplot as plt
+
+from llm4ad.base import Function
+
+from .base import Evoind
+from .clusterunit import ClusterUnit
+from .externalArchive import ExternalArchive
 
 
 def get_bert_embeddings(texts: List[str], model_path: str = None) -> np.ndarray:
@@ -55,12 +58,16 @@ def get_bert_embeddings(texts: List[str], model_path: str = None) -> np.ndarray:
     Returns:
         A numpy array of shape (len(texts), 768) containing the CLS token embeddings."""
     try:
-        from transformers import BertTokenizer, BertModel
         import torch
+        from transformers import BertModel, BertTokenizer
     except ImportError as e:
-        print(f"⚠️ [Warning in clustermanager.py] Optional dependencies missing: {e}. Feature extraction might fail.")
+        print(
+            f"⚠️ [Warning in clustermanager.py] Optional dependencies missing: {e}. Feature extraction might fail."
+        )
 
-    target_path = model_path if model_path and os.path.exists(model_path) else 'bert-base-uncased'
+    target_path = (
+        model_path if model_path and os.path.exists(model_path) else "bert-base-uncased"
+    )
 
     try:
         tokenizer = BertTokenizer.from_pretrained(target_path)
@@ -72,7 +79,9 @@ def get_bert_embeddings(texts: List[str], model_path: str = None) -> np.ndarray:
     embeddings = []
     for text in texts:
         try:
-            inputs = tokenizer(text, return_tensors='pt', truncation=True, padding=True, max_length=512)
+            inputs = tokenizer(
+                text, return_tensors="pt", truncation=True, padding=True, max_length=512
+            )
             with torch.no_grad():
                 outputs = model(**inputs)
                 hidden_states = outputs.last_hidden_state
@@ -85,10 +94,12 @@ def get_bert_embeddings(texts: List[str], model_path: str = None) -> np.ndarray:
     return np.array(embeddings)
 
 
-def individual_feature(population: List[Evoind],
-                       feature_type: Tuple[str, ...] = ('ast',),
-                       save_path: str = '',
-                       bert_model_path: str = None):
+def individual_feature(
+    population: List[Evoind],
+    feature_type: Tuple[str, ...] = ("ast",),
+    save_path: str = "",
+    bert_model_path: str = None,
+):
     """
     Calculates multi-modal features for the population to facilitate niching/clustering.
     Supported types:
@@ -100,12 +111,12 @@ def individual_feature(population: List[Evoind],
     if not population:
         return
 
-    print(f'[Feature Extraction] Processing feature types: {feature_type}')
+    print(f"[Feature Extraction] Processing feature types: {feature_type}")
     population_size = len(population)
     features = [[] for _ in range(population_size)]
 
     # 1. AST Structural Features (CodeBLEU)
-    if 'ast' in feature_type:
+    if "ast" in feature_type:
         AST = np.zeros((population_size, population_size))
         codes = [ind.function.to_code_without_docstring() for ind in population]
         for i in range(population_size):
@@ -114,10 +125,18 @@ def individual_feature(population: List[Evoind],
                     score = 1.0
                 else:
                     try:
-                        cal_result = calc_codebleu([codes[i]], [codes[j]], lang='python',
-                                                   weights=(0.25, 0.25, 0.25, 0.25), tokenizer=None)
+                        cal_result = calc_codebleu(
+                            [codes[i]],
+                            [codes[j]],
+                            lang="python",
+                            weights=(0.25, 0.25, 0.25, 0.25),
+                            tokenizer=None,
+                        )
                         # Hybrid score of syntax match and dataflow match
-                        score = 0.5 * cal_result['syntax_match_score'] + 0.5 * cal_result['dataflow_match_score']
+                        score = (
+                            0.5 * cal_result["syntax_match_score"]
+                            + 0.5 * cal_result["dataflow_match_score"]
+                        )
                     except Exception:
                         score = 0.0
 
@@ -129,23 +148,27 @@ def individual_feature(population: List[Evoind],
             features[i].extend(AST[i, :].tolist())
 
     # 2. Semantic Features (BERT)
-    if 'language' in feature_type:
+    if "language" in feature_type:
         texts = [ind.function.to_code_without_docstring() for ind in population]
         embeddings = get_bert_embeddings(texts, model_path=bert_model_path)
         for i in range(population_size):
             features[i].extend(embeddings[i, :].tolist())
 
     # 3. Random Baseline Features
-    if 'random' in feature_type:
+    if "random" in feature_type:
         random_features = np.random.normal(size=(population_size, 20))
         for i in range(population_size):
             features[i].extend(random_features[i, :].tolist())
 
     # 4. Objective/Fitness Features
-    if 'objective' in feature_type:
+    if "objective" in feature_type:
         for i in range(population_size):
             # 处理 None 的情况
-            obj = population[i].function.score if population[i].function.score is not None else 0
+            obj = (
+                population[i].function.score
+                if population[i].function.score is not None
+                else 0
+            )
             features[i].append(obj)
 
     # --- Dimension Reduction & Embedding ---
@@ -165,8 +188,14 @@ def individual_feature(population: List[Evoind],
         if save_path:
             try:
                 plt.figure(figsize=(8, 6))
-                sns.heatmap(all_features_reduced, annot=False, cmap='Blues', xticklabels=False, yticklabels=False)
-                plt.title('PCA of All Features')
+                sns.heatmap(
+                    all_features_reduced,
+                    annot=False,
+                    cmap="Blues",
+                    xticklabels=False,
+                    yticklabels=False,
+                )
+                plt.title("PCA of All Features")
                 save_file = f"{save_path}_PCA_features.png"
                 plt.savefig(save_file)
                 plt.close()
@@ -192,19 +221,19 @@ class ClusterManager:
     5. Implements resource allocation (resource tilt) based on cluster performance.
     """
 
-    def __init__(self,
-                 pop_size: int = 16,
-                 n_clusters: int = 4,
-                 intra_operators: Tuple[str, ...] = ('re', 'se', 'cc', 'lge'),
-                 intra_operators_parent_num: Dict[str, int] = None,
-                 intra_operators_frequency: Optional[Dict] = None,
-                 use_resource_tilt: bool = False,
-                 resource_tilt_alpha: float = 2.0,
-                 feature_type: Tuple[str, ...] = ('ast',),
-
-                 bert_model_path: str = None,
-                 debug_flag: bool = False,
-                 ):
+    def __init__(
+        self,
+        pop_size: int = 16,
+        n_clusters: int = 4,
+        intra_operators: Tuple[str, ...] = ("re", "se", "cc", "lge"),
+        intra_operators_parent_num: Dict[str, int] = None,
+        intra_operators_frequency: Optional[Dict] = None,
+        use_resource_tilt: bool = False,
+        resource_tilt_alpha: float = 2.0,
+        feature_type: Tuple[str, ...] = ("ast",),
+        bert_model_path: str = None,
+        debug_flag: bool = False,
+    ):
         """
         Initialize the Cluster Manager.
 
@@ -226,8 +255,10 @@ class ClusterManager:
         self.is_initialized = False
 
         # --- Operator Weighted Sequence ---
-        default_parent_num = {'re': 1, 'se': 1, 'cc': 1, 'lge': 1}
-        self.intra_cluster_operators_parent_num = intra_operators_parent_num or default_parent_num
+        default_parent_num = {"re": 1, "se": 1, "cc": 1, "lge": 1}
+        self.intra_cluster_operators_parent_num = (
+            intra_operators_parent_num or default_parent_num
+        )
 
         # Expand operators based on frequency for weighted random selection
         freq_config = intra_operators_frequency or {op: 1 for op in intra_operators}
@@ -241,14 +272,20 @@ class ClusterManager:
         if intra_operators_parent_num:
             missing_keys = set(intra_operators) - set(intra_operators_parent_num.keys())
             if missing_keys:
-                raise ValueError(f"intra_cluster_operators_parent_num is missing entries for: {sorted(missing_keys)}")
+                raise ValueError(
+                    f"intra_cluster_operators_parent_num is missing entries for: {sorted(missing_keys)}"
+                )
 
-        print(f'[Manager] Operators Expanded Sequence: {self.intra_cluster_operators}')
-        print(f'[Manager] Parent Requirements: {self.intra_cluster_operators_parent_num}')
+        print(f"[Manager] Operators Expanded Sequence: {self.intra_cluster_operators}")
+        print(
+            f"[Manager] Parent Requirements: {self.intra_cluster_operators_parent_num}"
+        )
 
-        self.external_archive = ExternalArchive(max_elites=5,
-                                                max_hard_negatives=30,
-                                                summary_update_interval=int(self.n_clusters * 3))
+        self.external_archive = ExternalArchive(
+            max_elites=5,
+            max_hard_negatives=30,
+            summary_update_interval=int(self.n_clusters * 3),
+        )
 
         self.use_resource_tilt = use_resource_tilt
         self.resource_tilt_alpha = resource_tilt_alpha
@@ -266,21 +303,33 @@ class ClusterManager:
         valid_funcs = [f for f in self.population if f.score is not None]
 
         if len(valid_funcs) < self.n_clusters:
-            print(f"❌ [Manager] Not enough individuals to cluster ({len(valid_funcs)}). Waiting...")
+            print(
+                f"❌ [Manager] Not enough individuals to cluster ({len(valid_funcs)}). Waiting..."
+            )
             return
 
-        print(f"⏳ [Manager] Initializing Clustering with {len(valid_funcs)} individuals...")
+        print(
+            f"⏳ [Manager] Initializing Clustering with {len(valid_funcs)} individuals..."
+        )
 
         # Initialize the Evoind container for the subsequent algorithm allocation to various niches.
         temp_evo_pop = [Evoind(function=f) for f in valid_funcs]
 
         save_path = "init_debug" if self.debug_flag else ""
-        individual_feature(temp_evo_pop, feature_type=self.feature_type,
-                           save_path=save_path, bert_model_path=self.bert_model_path)
+        individual_feature(
+            temp_evo_pop,
+            feature_type=self.feature_type,
+            save_path=save_path,
+            bert_model_path=self.bert_model_path,
+        )
 
         features = []
         for ind in temp_evo_pop:
-            if hasattr(ind, 'feature') and ind.feature is not None and len(ind.feature) > 0:
+            if (
+                hasattr(ind, "feature")
+                and ind.feature is not None
+                and len(ind.feature) > 0
+            ):
                 features.append(ind.feature)
             else:
                 features.append(np.zeros(10))
@@ -310,7 +359,7 @@ class ClusterManager:
                 max_pop_size=self.pop_size,
                 intra_operators=self.intra_cluster_operators,
                 intra_operators_parent_num=self.intra_cluster_operators_parent_num,
-                pop=unit_pop
+                pop=unit_pop,
             )
             self.cluster_units[c_id] = new_unit
 
@@ -340,7 +389,9 @@ class ClusterManager:
             return cluster_ids, [1.0 / n] * n
 
         scores_arr = np.array(scores)
-        exp_scores = np.exp((scores_arr - np.max(scores_arr)) * self.resource_tilt_alpha)
+        exp_scores = np.exp(
+            (scores_arr - np.max(scores_arr)) * self.resource_tilt_alpha
+        )
         sum_exp = np.sum(exp_scores)
 
         if sum_exp == 0:
@@ -360,14 +411,14 @@ class ClusterManager:
                 pool = self.population + self.next_pop
                 valid_pool = [f for f in pool if f.score is not None]
                 if not valid_pool:
-                    return [], 'error', -1
+                    return [], "error", -1
                 parent = random.choice(valid_pool)
-                return [parent], 're', -1
+                return [parent], "re", -1
 
             # --- Phase B: Evolutionary Niching ---
             cluster_ids, probs = self._calculate_selection_probs()
             if not cluster_ids:
-                return [], 'error', -1
+                return [], "error", -1
 
             chosen_c_id = np.random.choice(cluster_ids, p=probs)
             target_unit = self.cluster_units[chosen_c_id]
@@ -377,13 +428,19 @@ class ClusterManager:
 
             # --- Cross-Niches Collaboration ---
             if need_external:
-                if operator == 'cn':    # Crossover with external help
-                    other_units = [u for uid, u in self.cluster_units.items() if uid != chosen_c_id and len(u) > 0]
+                if operator == "cn":  # Crossover with external help
+                    other_units = [
+                        u
+                        for uid, u in self.cluster_units.items()
+                        if uid != chosen_c_id and len(u) > 0
+                    ]
                     helper_func = None
 
                     if other_units:
                         helper_unit = random.choice(other_units)
-                        h_parents, _, _ = helper_unit.selection(help_inter=True, mode='tournament', help_number=1)
+                        h_parents, _, _ = helper_unit.selection(
+                            help_inter=True, mode="tournament", help_number=1
+                        )
                         if h_parents:
                             helper_func = h_parents[0]
 
@@ -393,16 +450,22 @@ class ClusterManager:
                     if helper_func:
                         parents.append(helper_func)
 
-                elif operator == 'lge':
+                elif operator == "lge":
                     # Add Global Best Function
                     if self.global_best_ind:
-                        if not any(f.body == self.global_best_ind.body for f in parents):
+                        if not any(
+                            f.body == self.global_best_ind.body for f in parents
+                        ):
                             parents.append(self.global_best_ind)
 
                     # Add Cluster Best Function
-                    cluster_best_evo = target_unit.get_best_individual()  # return: Evoind
+                    cluster_best_evo = (
+                        target_unit.get_best_individual()
+                    )  # return: Evoind
                     if cluster_best_evo:
-                        if not any(f.body == cluster_best_evo.function.body for f in parents):
+                        if not any(
+                            f.body == cluster_best_evo.function.body for f in parents
+                        ):
                             parents.append(cluster_best_evo.function)
 
             return parents, operator, chosen_c_id
@@ -422,15 +485,16 @@ class ClusterManager:
 
                 for i, existing_func in enumerate(self.population):
                     # Code same
-                    code_match = (existing_func.body == offspring.body)
+                    code_match = existing_func.body == offspring.body
                     # Score same
-                    score_match = (abs(existing_func.score - offspring.score) < 1e-9)
+                    score_match = abs(existing_func.score - offspring.score) < 1e-9
 
                     if code_match or score_match:
                         if offspring.score >= existing_func.score:
                             # Replace old version with new candidate to maintain diversity
                             print(
-                                f"♻️ [Manager] Replacing existing individual (Score: {existing_func.score:.4f}) with new candidate.")
+                                f"♻️ [Manager] Replacing existing individual (Score: {existing_func.score:.4f}) with new candidate."
+                            )
                             self.population[i] = offspring
                             is_duplicate_or_neutral = True
                             break
@@ -441,16 +505,23 @@ class ClusterManager:
                     self._update_global_best([Evoind(offspring)])
                     return
 
-                if self.global_best_ind is None or offspring.score > self.global_best_ind.score:
+                if (
+                    self.global_best_ind is None
+                    or offspring.score > self.global_best_ind.score
+                ):
                     self.global_best_ind = offspring
 
                 self.next_pop.append(offspring)
 
                 # Route to specific ClusterUnit (Niche) if applicable
                 target_id = from_which_cluster
-                if self.is_initialized and target_id is not None and target_id in self.cluster_units:
+                if (
+                    self.is_initialized
+                    and target_id is not None
+                    and target_id in self.cluster_units
+                ):
                     evo_offspring = Evoind(function=offspring, cluster_id=target_id)
-                    if hasattr(offspring, 'reflection'):
+                    if hasattr(offspring, "reflection"):
                         evo_offspring.set_reflection(offspring.reflection)
                     self.cluster_units[target_id].register_individual(evo_offspring)
 
@@ -489,29 +560,38 @@ class ClusterManager:
 
             valid_funcs.sort(key=lambda x: x.score, reverse=True)
 
-            self.population = valid_funcs[:self.pop_size]
+            self.population = valid_funcs[: self.pop_size]
             self.next_pop = []
             self.generation += 1
 
             # Log
             best_score = self.population[0].score if self.population else None
-            print(f"[Manager] 📢 Global Population Updated. Current Size: {len(self.population)}")
+            print(
+                f"[Manager] 📢 Global Population Updated. Current Size: {len(self.population)}"
+            )
 
             if not self.is_initialized and len(self.population) >= self.n_clusters:
-                print(f"[Manager] 🚀 Sufficient individuals collected ({len(self.population)} >= {self.n_clusters}). "
-                      f"Triggering Initial Clustering...")
+                print(
+                    f"[Manager] 🚀 Sufficient individuals collected ({len(self.population)} >= {self.n_clusters}). "
+                    f"Triggering Initial Clustering..."
+                )
                 self.initial_population_clustering()
 
     def _update_global_best(self, population: List[Evoind]):
         """Helper to track the highest scoring function globally."""
         for ind in population:
-            if self.global_best_ind is None or ind.function.score > self.global_best_ind.score:
+            if (
+                self.global_best_ind is None
+                or ind.function.score > self.global_best_ind.score
+            ):
                 self.global_best_ind = ind.function
 
     def debug_status(self):
         """Prints diagnostic information about cluster health and scores."""
         print(f"\n=== Manager Status ===")
-        print(f"Global Pop (Funcs): {len(self.population)}, Buffer: {len(self.next_pop)}")
+        print(
+            f"Global Pop (Funcs): {len(self.population)}, Buffer: {len(self.next_pop)}"
+        )
 
         if self.global_best_ind:
             print(f"Global Best: {self.global_best_ind.score:.4f}")
@@ -522,6 +602,8 @@ class ClusterManager:
                 unit = self.cluster_units[c_id]
                 best = unit.get_best_individual()
                 score = best.function.score if best else -999
-                print(f"  Cluster {c_id}: Size={len(unit)}, Best={score:.4f}, Prob={prob:.2%}")
+                print(
+                    f"  Cluster {c_id}: Size={len(unit)}, Best={score:.4f}, Prob={prob:.2%}"
+                )
         else:
             print("  [Cold Start] Waiting for population buffer to fill...")

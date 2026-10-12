@@ -3,17 +3,17 @@
 #
 # ------------------------------- Copyright --------------------------------
 # Copyright (c) 2025 Optima Group.
-# 
-# Permission is granted to use the LLM4AD platform for research purposes. 
-# All publications, software, or other works that utilize this platform 
-# or any part of its codebase must acknowledge the use of "LLM4AD" and 
+#
+# Permission is granted to use the LLM4AD platform for research purposes.
+# All publications, software, or other works that utilize this platform
+# or any part of its codebase must acknowledge the use of "LLM4AD" and
 # cite the following reference:
-# 
-# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#
+# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 # with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
-# 
-# For inquiries regarding commercial use or licensing, please contact 
+#
+# For inquiries regarding commercial use or licensing, please contact
 # http://www.llm4ad.com/contact.html
 # --------------------------------------------------------------------------
 
@@ -22,8 +22,9 @@ from __future__ import annotations
 import http.client
 import json
 import time
-from typing import Any
 import traceback
+from typing import Any
+
 from ...base import LLM
 
 
@@ -61,8 +62,8 @@ class HttpsApi(LLM):
         Returns:
             The string content of the LLM's response.
         """
-        image64s = kwargs.get('image64s', None)  # List[str]
-        messages_input = kwargs.get('messages', None)
+        image64s = kwargs.get("image64s", None)  # List[str]
+        messages_input = kwargs.get("messages", None)
 
         # --- 1. Priority: Explicit messages list ---
         if messages_input is not None:
@@ -81,22 +82,21 @@ class HttpsApi(LLM):
 
             if image64s:
                 # Construct multimodal content structure
-                content = [{
-                    "type": "text",
-                    "text": text_content
-                }]
+                content = [{"type": "text", "text": text_content}]
                 for image in image64s:
-                    content.append({
-                        "type": "image_url",
-                        "image_url": {
-                            "url": f"data:image/png;base64,{image}",
+                    content.append(
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{image}",
+                            },
                         }
-                    })
-                messages = [{'role': 'user', 'content': content}]
+                    )
+                messages = [{"role": "user", "content": content}]
 
             else:
                 # Construct standard text-only message
-                messages = [{'role': 'user', 'content': text_content}]
+                messages = [{"role": "user", "content": text_content}]
 
         # Retry loop for handling network or API transient errors
         while True:
@@ -104,25 +104,27 @@ class HttpsApi(LLM):
                 conn = http.client.HTTPSConnection(self._host, timeout=self._timeout)
 
                 # Prepare standard OpenAI-compatible payload
-                payload = json.dumps({
-                    'max_tokens': self._kwargs.get('max_tokens', 8192),
-                    'top_p': self._kwargs.get('top_p', None),
-                    'temperature': self._kwargs.get('temperature', 1.0),
-                    'model': self._model,
-                    'messages': messages
-                })
+                payload = json.dumps(
+                    {
+                        "max_tokens": self._kwargs.get("max_tokens", 8192),
+                        "top_p": self._kwargs.get("top_p", None),
+                        "temperature": self._kwargs.get("temperature", 1.0),
+                        "model": self._model,
+                        "messages": messages,
+                    }
+                )
                 headers = {
-                    'Authorization': f'Bearer {self._key}',
-                    'User-Agent': 'Apifox/1.0.0 (https://apifox.com)',
-                    'Content-Type': 'application/json'
+                    "Authorization": f"Bearer {self._key}",
+                    "User-Agent": "Apifox/1.0.0 (https://apifox.com)",
+                    "Content-Type": "application/json",
                 }
-                conn.request('POST', '/v1/chat/completions', payload, headers)
+                conn.request("POST", "/v1/chat/completions", payload, headers)
                 res = conn.getresponse()
-                data = res.read().decode('utf-8')
+                data = res.read().decode("utf-8")
                 data = json.loads(data)
 
                 # Extract content from the standard response format
-                response = data['choices'][0]['message']['content']
+                response = data["choices"][0]["message"]["content"]
                 # Reset error counter on success
                 if self.debug_mode:
                     self._cumulative_error = 0
@@ -134,11 +136,15 @@ class HttpsApi(LLM):
                 # In debug mode, crash after consecutive failures to allow debugging
                 if self.debug_mode:
                     if self._cumulative_error == 10:
-                        raise RuntimeError(f'{self.__class__.__name__} error: {traceback.format_exc()}.'
-                                           f'You may check your API host and API key.')
+                        raise RuntimeError(
+                            f"{self.__class__.__name__} error: {traceback.format_exc()}."
+                            f"You may check your API host and API key."
+                        )
                 else:
-                    print(f'{self.__class__.__name__} error: {traceback.format_exc()}.'
-                          f'You may check your API host and API key.')
+                    print(
+                        f"{self.__class__.__name__} error: {traceback.format_exc()}."
+                        f"You may check your API host and API key."
+                    )
                     time.sleep(2)
                 continue
 

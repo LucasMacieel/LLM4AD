@@ -28,6 +28,7 @@ from __future__ import annotations
 import math
 from threading import Lock
 from typing import List
+
 import numpy as np
 
 from ...base import *
@@ -40,7 +41,9 @@ class Population:
     and rank-based parent selection for evolution.
     """
 
-    def __init__(self, pop_size, generation=0, pop: List[Function] | Population | None = None):
+    def __init__(
+        self, pop_size, generation=0, pop: List[Function] | Population | None = None
+    ):
         """
         Initialize the population container.
         :param pop_size: Maximum number of individuals allowed in the active population.
@@ -55,10 +58,10 @@ class Population:
             self._population = pop._population
 
         self._pop_size = pop_size
-        self._lock = Lock()     # Ensures thread-safe registration during parallel sampling
-        self._next_gen_pop = []     # Buffer for individuals waiting for environmental selection
+        self._lock = Lock()  # Ensures thread-safe registration during parallel sampling
+        self._next_gen_pop = []  # Buffer for individuals waiting for environmental selection
         self._generation = generation
-        self._pop_register_number = 1      # Unique global ID for each sampled individual
+        self._pop_register_number = 1  # Unique global ID for each sampled individual
 
     def __len__(self):
         return len(self._population)
@@ -90,12 +93,12 @@ class Population:
 
         # Default score for invalid/failed evaluations
         if func.score is None:
-            func.score = float('-inf')
+            func.score = float("-inf")
         try:
             self._lock.acquire()
             # Phase 1: Quality Control - Penalize duplicates to maintain diversity
             if self.has_duplicate_function(func):
-                func.score = float('-inf')
+                func.score = float("-inf")
             func.pop_register_number = self._pop_register_number
             self._pop_register_number += 1
             # Phase 2: Buffering
@@ -106,7 +109,7 @@ class Population:
                 pop = self._population + self._next_gen_pop
                 # Sort all candidates by score and keep the top-N individuals
                 pop = sorted(pop, key=lambda f: f.score, reverse=True)
-                self._population = pop[:self._pop_size]
+                self._population = pop[: self._pop_size]
                 # Reset buffer and increment generation
                 self._next_gen_pop = []
                 self._generation += 1
@@ -127,7 +130,9 @@ class Population:
                 return True
         return False
 
-    def selection(self, number=1, best_must=False, mode='exp', pressure=0.5) -> List[Function]:
+    def selection(
+        self, number=1, best_must=False, mode="exp", pressure=0.5
+    ) -> List[Function]:
         """
         Selects parents for the next evolutionary step using rank-based probability distributions.
 
@@ -146,9 +151,9 @@ class Population:
 
         ranks = np.arange(n)
         # Define selection probabilities (P) based on rank
-        if mode == 'exp':
+        if mode == "exp":
             p = np.exp(-pressure * ranks)
-        elif mode == 'linear':
+        elif mode == "linear":
             p = 1.0 / (ranks + n)
         else:
             p = np.ones(n)  # Uniform sampling
@@ -162,7 +167,9 @@ class Population:
             use_replace = True
 
         # Perform weighted random sampling
-        selected = list(np.random.choice(sorted_funcs, size=number, p=p, replace=use_replace))
+        selected = list(
+            np.random.choice(sorted_funcs, size=number, p=p, replace=use_replace)
+        )
 
         # Elitism Strategy: Force inclusion of the best individual if required
         if best_must:

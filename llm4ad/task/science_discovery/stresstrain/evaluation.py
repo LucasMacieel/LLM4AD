@@ -35,34 +35,39 @@
 from __future__ import annotations
 
 from typing import Any
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 from llm4ad.base import Evaluation
-from llm4ad.task.science_discovery.stresstrain.template import template_program, task_description
 from llm4ad.task.science_discovery.stresstrain import train
+from llm4ad.task.science_discovery.stresstrain.template import (
+    task_description,
+    template_program,
+)
 
-__all__ = ['SSEvaluation']
+__all__ = ["SSEvaluation"]
 
 MAX_NPARAMS = 10
 params = [1.0] * MAX_NPARAMS
 
 
 def evaluate(data: dict, equation: callable) -> float | None:
-    """ Evaluate the equation on data observations."""
+    """Evaluate the equation on data observations."""
 
     # Load data observations
-    inputs, outputs = data['inputs'], data['outputs']
+    inputs, outputs = data["inputs"], data["outputs"]
     strain, temp = inputs[:, 0], inputs[:, 1]
 
     # Optimize parameters based on data
     from scipy.optimize import minimize
+
     def loss(params):
         y_pred = equation(strain, temp, params)
         return np.mean((y_pred - outputs) ** 2)
 
     loss_partial = lambda params: loss(params)
-    result = minimize(loss_partial, [1.0] * MAX_NPARAMS, method='BFGS')
+    result = minimize(loss_partial, [1.0] * MAX_NPARAMS, method="BFGS")
 
     # Return evaluation score
     optimized_params = result.x
@@ -75,13 +80,12 @@ def evaluate(data: dict, equation: callable) -> float | None:
 
 
 class SSEvaluation(Evaluation):
-
     def __init__(self, timeout_seconds=20, **kwargs):
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # read csv
@@ -90,15 +94,18 @@ class SSEvaluation(Evaluation):
         data = np.array(df)
         X = data[:, :-1]
         y = data[:, -1].reshape(-1)
-        self._datasets = {'inputs': X, 'outputs': y}
+        self._datasets = {"inputs": X, "outputs": y}
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:
         return evaluate(self._datasets, callable_func)
 
 
-if __name__ == '__main__':
-    def equation(strain: np.ndarray, temp: np.ndarray, params: np.ndarray) -> np.ndarray:
-        """ Mathematical function for stress in Aluminium rod
+if __name__ == "__main__":
+
+    def equation(
+        strain: np.ndarray, temp: np.ndarray, params: np.ndarray
+    ) -> np.ndarray:
+        """Mathematical function for stress in Aluminium rod
 
         Args:
             strain: A numpy array representing observations of strain.
@@ -110,7 +117,6 @@ if __name__ == '__main__':
         """
         return params[0] * strain + params[1] * temp
 
-
     eval = SSEvaluation()
-    res = eval.evaluate_program('', equation)
+    res = eval.evaluate_program("", equation)
     print(res)

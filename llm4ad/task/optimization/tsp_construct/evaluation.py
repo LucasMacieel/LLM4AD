@@ -11,59 +11,59 @@
 #    - n_instance: Number of problem instances to generate: int (default: 16).
 #    - problem_size: Number of customers to serve: int (default: 50).
 #
-# 
+#
 # References:
-#   - Fei Liu, Xialiang Tong, Mingxuan Yuan, and Qingfu Zhang. 
+#   - Fei Liu, Xialiang Tong, Mingxuan Yuan, and Qingfu Zhang.
 #     "Algorithm Evolution using Large Language Model." arXiv preprint arXiv:2311.15249 (2023).
-# 
+#
 # ------------------------------- Copyright --------------------------------
 # Copyright (c) 2025 Optima Group.
-# 
-# Permission is granted to use the LLM4AD platform for research purposes. 
-# All publications, software, or other works that utilize this platform 
-# or any part of its codebase must acknowledge the use of "LLM4AD" and 
+#
+# Permission is granted to use the LLM4AD platform for research purposes.
+# All publications, software, or other works that utilize this platform
+# or any part of its codebase must acknowledge the use of "LLM4AD" and
 # cite the following reference:
-# 
-# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#
+# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 # with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
-# 
-# For inquiries regarding commercial use or licensing, please contact 
+#
+# For inquiries regarding commercial use or licensing, please contact
 # http://www.llm4ad.com/contact.html
 # --------------------------------------------------------------------------
 from __future__ import annotations
 
 from typing import Any
+
 import numpy as np
+
 from llm4ad.base import Evaluation
 from llm4ad.task.optimization.tsp_construct.get_instance import GetData
-from llm4ad.task.optimization.tsp_construct.template import template_program, task_description
+from llm4ad.task.optimization.tsp_construct.template import (
+    task_description,
+    template_program,
+)
 
-__all__ = ['TSPEvaluation']
+__all__ = ["TSPEvaluation"]
 
 
 class TSPEvaluation(Evaluation):
     """Evaluator for traveling salesman problem."""
 
-    def __init__(self,
-                 timeout_seconds=30,
-                 n_instance=16,
-                 problem_size=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=30, n_instance=16, problem_size=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         self.n_instance = n_instance
@@ -77,7 +77,9 @@ class TSPEvaluation(Evaluation):
     def tour_cost(self, instance, solution, problem_size):
         cost = 0
         for j in range(problem_size - 1):
-            cost += np.linalg.norm(instance[int(solution[j])] - instance[int(solution[j + 1])])
+            cost += np.linalg.norm(
+                instance[int(solution[j])] - instance[int(solution[j + 1])]
+            )
         cost += np.linalg.norm(instance[int(solution[-1])] - instance[int(solution[0])])
         return cost
 
@@ -100,7 +102,6 @@ class TSPEvaluation(Evaluation):
         n_ins = 0
 
         for instance, distance_matrix in self._datasets:
-
             # get neighborhood matrix
             neighbor_matrix = self.generate_neighborhood_matrix(instance)
 
@@ -111,14 +112,18 @@ class TSPEvaluation(Evaluation):
             route = np.zeros(self.problem_size)
             # print(">>> Step 0 : select node "+str(instance[0][0])+", "+str(instance[0][1]))
             for i in range(1, self.problem_size - 1):
-
                 near_nodes = neighbor_matrix[current_node][1:]
 
                 mask = ~np.isin(near_nodes, route[:i])
 
                 unvisited_near_nodes = near_nodes[mask]
 
-                next_node = eva(current_node, destination_node, unvisited_near_nodes, distance_matrix)
+                next_node = eva(
+                    current_node,
+                    destination_node,
+                    unvisited_near_nodes,
+                    distance_matrix,
+                )
 
                 if next_node in route:
                     # print("wrong algorithm select duplicate node, retrying ...")
@@ -128,7 +133,9 @@ class TSPEvaluation(Evaluation):
 
                 route[i] = current_node
 
-            mask = ~np.isin(np.arange(self.problem_size), route[:self.problem_size - 1])
+            mask = ~np.isin(
+                np.arange(self.problem_size), route[: self.problem_size - 1]
+            )
 
             last_node = np.arange(self.problem_size)[mask]
 
@@ -150,13 +157,17 @@ class TSPEvaluation(Evaluation):
         return -ave_dis
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
 
     print(sys.path)
 
-
-    def select_next_node(current_node: int, destination_node: int, unvisited_nodes: np.ndarray, distance_matrix: np.ndarray) -> int:
+    def select_next_node(
+        current_node: int,
+        destination_node: int,
+        unvisited_nodes: np.ndarray,
+        distance_matrix: np.ndarray,
+    ) -> int:
         """
         Design a novel algorithm to select the next node in each step.
 
@@ -179,6 +190,5 @@ if __name__ == '__main__':
 
         return next_node
 
-
     tsp = TSPEvaluation()
-    tsp.evaluate_program('_', select_next_node)
+    tsp.evaluate_program("_", select_next_node)

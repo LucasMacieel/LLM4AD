@@ -3,17 +3,17 @@
 #
 # ------------------------------- Copyright --------------------------------
 # Copyright (c) 2025 Optima Group.
-# 
-# Permission is granted to use the LLM4AD platform for research purposes. 
-# All publications, software, or other works that utilize this platform 
-# or any part of its codebase must acknowledge the use of "LLM4AD" and 
+#
+# Permission is granted to use the LLM4AD platform for research purposes.
+# All publications, software, or other works that utilize this platform
+# or any part of its codebase must acknowledge the use of "LLM4AD" and
 # cite the following reference:
-# 
-# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#
+# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 # with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
-# 
-# For inquiries regarding commercial use or licensing, please contact 
+#
+# For inquiries regarding commercial use or licensing, please contact
 # http://www.llm4ad.com/contact.html
 # --------------------------------------------------------------------------
 
@@ -21,22 +21,24 @@ import os
 import sys
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))) # Add repo root to path to find llm4ad package
+sys.path.insert(
+    0, os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+)  # Add repo root to path to find llm4ad package
+
+import inspect
 
 import pytz
-import inspect
-import llm4ad
 
+import llm4ad
 
 # Dynamically import all usable classes from the 'llm4ad' package
 for module in [llm4ad.tools.llm, llm4ad.tools.profiler, llm4ad.task, llm4ad.method]:
-    globals().update({name: obj for name, obj in vars(module).items() if inspect.isclass(obj)})
+    globals().update(
+        {name: obj for name, obj in vars(module).items() if inspect.isclass(obj)}
+    )
 
 
-def main_gui(llm: dict,
-             method: dict,
-             evaluation: dict,
-             profiler: dict):
+def main_gui(llm: dict, method: dict, evaluation: dict, profiler: dict):
     """Executes the optimization process using dynamically loaded components based on provided GUI-configured settings.
     Args:
         llm (dict): A dictionary containing the configuration for the large language model (LLM), including:
@@ -79,18 +81,23 @@ def main_gui(llm: dict,
         }
 
         main_gui(llm_config, method_config, evaluation_config, profiler_config)
-        """
+    """
 
-    profiler_case = globals()[profiler['name']]
-    llm_case = globals()[llm['name']]
-    method_case = globals()[method['name']]
-    eval_case = globals()[evaluation['name']]
+    profiler_case = globals()[profiler["name"]]
+    llm_case = globals()[llm["name"]]
+    method_case = globals()[method["name"]]
+    eval_case = globals()[evaluation["name"]]
 
-    profiler = profiler_case(evaluation_name=evaluation['name'],
-                             method_name=method['name'],
-                             log_dir=profiler['log_dir'], log_style='complex',create_random_path=False, final_log_dir=profiler['log_dir'])
+    profiler = profiler_case(
+        evaluation_name=evaluation["name"],
+        method_name=method["name"],
+        log_dir=profiler["log_dir"],
+        log_style="complex",
+        create_random_path=False,
+        final_log_dir=profiler["log_dir"],
+    )
 
-    llm.pop('name')
+    llm.pop("name")
 
     # Filter dict to pass only recognized arguments
     method_params = {key: value for key, value in method.items()}
@@ -99,50 +106,50 @@ def main_gui(llm: dict,
 
     llm_case = llm_case(**llm_params)
     eval_case = eval_case(**evaluation_params)
-    method_case = method_case(llm=llm_case,
-                              profiler=profiler,
-                              evaluation=eval_case,
-                              **method_params)
+    method_case = method_case(
+        llm=llm_case, profiler=profiler, evaluation=eval_case, **method_params
+    )
     method_case.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     llm = {
-        'name': 'HttpsApi',
-        'host': "api.bltcy.top",
-        'key': "",
-        'model': "gpt-4o-mini"
+        "name": "HttpsApi",
+        "host": "api.bltcy.top",
+        "key": "",
+        "model": "gpt-4o-mini",
     }
 
     method = {
-        'name': 'EoH',
-        'max_sample_nums': 200,
-        'max_generations': 10,
-        'pop_size': 10,
-        'num_samplers': 4,
-        'num_evaluators': 4
+        "name": "EoH",
+        "max_sample_nums": 200,
+        "max_generations": 10,
+        "pop_size": 10,
+        "num_samplers": 4,
+        "num_evaluators": 4,
     }
 
     evaluation = {
-        'name': 'OBPEvaluation',
-        'data_file': 'weibull_train.pkl',
-        'data_key': 'weibull_5k_train'
+        "name": "OBPEvaluation",
+        "data_file": "weibull_train.pkl",
+        "data_key": "weibull_5k_train",
     }
 
-    temp_str1 = evaluation['name']
-    temp_str2 = method['name']
+    temp_str1 = evaluation["name"]
+    temp_str2 = method["name"]
     process_start_time = datetime.now(pytz.timezone("Asia/Shanghai"))
-    b = os.path.abspath('..')
-    log_folder = b + '/llm4ad/logs/' + process_start_time.strftime(
-        "%Y%m%d_%H%M%S") + f'_{temp_str1}' + f'_{temp_str2}'
+    b = os.path.abspath("..")
+    log_folder = (
+        b
+        + "/llm4ad/logs/"
+        + process_start_time.strftime("%Y%m%d_%H%M%S")
+        + f"_{temp_str1}"
+        + f"_{temp_str2}"
+    )
 
-    profiler = {
-        'name': 'ProfilerBase',
-        'log_dir': log_folder
-    }
+    profiler = {"name": "ProfilerBase", "log_dir": log_folder}
 
     # Example
-    main_gui(llm=llm,
-             method=method,
-             evaluation=evaluation,
-             profiler=profiler)  # Enter parameters here
+    main_gui(
+        llm=llm, method=method, evaluation=evaluation, profiler=profiler
+    )  # Enter parameters here

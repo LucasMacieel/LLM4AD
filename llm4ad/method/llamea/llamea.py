@@ -1,25 +1,26 @@
 from llamea import LLaMEA as LLaMEA_Algorithm
-from ...base import LLM
-
-from .evaluation import generate_evaluator
-from .sampler import LLaMEASampler
 
 from llm4ad.base import Evaluation
 
+from ...base import LLM
+from .evaluation import generate_evaluator
+from .sampler import LLaMEASampler
+
+
 class LLaMEA(LLaMEA_Algorithm):
     def __init__(
-            self,
-            llm : LLM,
-            evaluator: Evaluation,
-            iterations : int = 50,
-            n_parents: int = 5,
-            n_offsprings: int=5,
-            role_prompt : str = "",
-            task_prompt: str = "",
-            example_prompt :str | None = None,
-            minimization: bool = False,
-            elitism: bool = True,
-            **kwargs
+        self,
+        llm: LLM,
+        evaluator: Evaluation,
+        iterations: int = 50,
+        n_parents: int = 5,
+        n_offsprings: int = 5,
+        role_prompt: str = "",
+        task_prompt: str = "",
+        example_prompt: str | None = None,
+        minimization: bool = False,
+        elitism: bool = True,
+        **kwargs,
     ):
         """
         Args:
@@ -34,7 +35,7 @@ class LLaMEA(LLaMEA_Algorithm):
             example_prompt: Example propmt is llm4ad.tasks.*.template.template_program for solving a problem,
             minimisation: Flag to define direction of optimality.
             elitism: A bool flag to run algorithm in (λ + µ) if set True, else (λ , µ).
-        """    
+        """
         evaluation_function = generate_evaluator(evaluator)
         super().__init__(
             f=evaluation_function,
@@ -47,8 +48,8 @@ class LLaMEA(LLaMEA_Algorithm):
             example_prompt=example_prompt,
             minimization=minimization,
             elitism=elitism,
-            **kwargs
+            **kwargs,
         )
-        
+
         self.evaluator = evaluator
         self.sampler = LLaMEASampler(llm)

@@ -22,33 +22,34 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.p_median_capacitated_co_bench.template import template_program, task_description
 
-__all__ = ['PMCEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.p_median_capacitated_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["PMCEvaluationCB"]
 
 
 class PMCEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
@@ -56,10 +57,12 @@ class PMCEvaluationCB(Evaluation):
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +74,19 @@ class PMCEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['best_known'], j['n'], j['p'], j['Q'], j['customers'])
-                    fitness = self.eval_func(best_known=j['best_known'], n=j['n'], p=j['p'], Q=j['Q'], customers=j['customers'], objective=result['objective'], medians=result['medians'], assignments=result['assignments'])
+                    result = eva(
+                        j["best_known"], j["n"], j["p"], j["Q"], j["customers"]
+                    )
+                    fitness = self.eval_func(
+                        best_known=j["best_known"],
+                        n=j["n"],
+                        p=j["p"],
+                        Q=j["Q"],
+                        customers=j["customers"],
+                        objective=result["objective"],
+                        medians=result["medians"],
+                        assignments=result["assignments"],
+                    )
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -100,7 +114,9 @@ class PMCEvaluationCB(Evaluation):
         """
         cases = []
         try:
-            lines = [line.strip() for line in input_string.split('\n') if line.strip() != '']
+            lines = [
+                line.strip() for line in input_string.split("\n") if line.strip() != ""
+            ]
         except Exception as e:
             raise ValueError("Error reading input file: " + str(e))
 
@@ -110,48 +126,74 @@ class PMCEvaluationCB(Evaluation):
         try:
             M = int(lines[0])
         except Exception as e:
-            raise ValueError("The first line must be an integer representing the number of cases.")
+            raise ValueError(
+                "The first line must be an integer representing the number of cases."
+            )
 
         index = 1
         for case_idx in range(M):
             if index >= len(lines):
-                raise ValueError("Unexpected end of file when reading case {}.".format(case_idx + 1))
+                raise ValueError(
+                    "Unexpected end of file when reading case {}.".format(case_idx + 1)
+                )
 
             # Read problem header: <problem_number> <best_known_solution_value>
             tokens = lines[index].split()
             if len(tokens) < 2:
-                raise ValueError("Invalid problem header at case {}.".format(case_idx + 1))
+                raise ValueError(
+                    "Invalid problem header at case {}.".format(case_idx + 1)
+                )
             try:
                 # We don't need the problem number, so we can ignore it.
                 _ = int(tokens[0])
                 best_known = float(tokens[1])
             except Exception as e:
-                raise ValueError("Error parsing problem header at case {}: {}".format(case_idx + 1, e))
+                raise ValueError(
+                    "Error parsing problem header at case {}: {}".format(
+                        case_idx + 1, e
+                    )
+                )
             index += 1
 
             if index >= len(lines):
-                raise ValueError("Missing instance parameters for case {}.".format(case_idx + 1))
+                raise ValueError(
+                    "Missing instance parameters for case {}.".format(case_idx + 1)
+                )
 
             # Read instance parameters: <n> <p> <Q>
             tokens = lines[index].split()
             if len(tokens) < 3:
-                raise ValueError("Invalid instance parameters at case {}.".format(case_idx + 1))
+                raise ValueError(
+                    "Invalid instance parameters at case {}.".format(case_idx + 1)
+                )
             try:
                 n = int(tokens[0])
                 p = int(tokens[1])
                 Q = float(tokens[2])
             except Exception as e:
-                raise ValueError("Error parsing instance parameters at case {}: {}".format(case_idx + 1, e))
+                raise ValueError(
+                    "Error parsing instance parameters at case {}: {}".format(
+                        case_idx + 1, e
+                    )
+                )
             index += 1
 
             # Read n customer lines
             customers = []
             if len(lines) < index + n:
-                raise ValueError("Expected {} customer lines for case {}, but found fewer.".format(n, case_idx + 1))
+                raise ValueError(
+                    "Expected {} customer lines for case {}, but found fewer.".format(
+                        n, case_idx + 1
+                    )
+                )
             for i in range(n):
                 tokens = lines[index].split()
                 if len(tokens) < 4:
-                    raise ValueError("Invalid customer data at line {} in case {}.".format(index + 1, case_idx + 1))
+                    raise ValueError(
+                        "Invalid customer data at line {} in case {}.".format(
+                            index + 1, case_idx + 1
+                        )
+                    )
                 try:
                     customer_id = int(tokens[0])
                     x = float(tokens[1])
@@ -159,7 +201,10 @@ class PMCEvaluationCB(Evaluation):
                     demand = float(tokens[3])
                 except Exception as e:
                     raise ValueError(
-                        "Error parsing customer data on line {} in case {}: {}".format(index + 1, case_idx + 1, e))
+                        "Error parsing customer data on line {} in case {}: {}".format(
+                            index + 1, case_idx + 1, e
+                        )
+                    )
                 customers.append((customer_id, x, y, demand))
                 index += 1
 
@@ -168,7 +213,7 @@ class PMCEvaluationCB(Evaluation):
                 "n": n,
                 "p": p,
                 "Q": Q,
-                "customers": customers
+                "customers": customers,
             }
             cases.append(case_data)
 
@@ -209,18 +254,32 @@ class PMCEvaluationCB(Evaluation):
         medians = kwargs.get("medians")
         assignments = kwargs.get("assignments")
 
-        if best_known is None or n is None or p is None or Q is None or customers is None:
+        if (
+            best_known is None
+            or n is None
+            or p is None
+            or Q is None
+            or customers is None
+        ):
             raise ValueError("Instance data is incomplete.")
         if reported_obj is None or medians is None or assignments is None:
             raise ValueError("Solution data is incomplete.")
 
         # Validate medians length
         if len(medians) != p:
-            raise ValueError("The solution must contain exactly {} medians; found {}.".format(p, len(medians)))
+            raise ValueError(
+                "The solution must contain exactly {} medians; found {}.".format(
+                    p, len(medians)
+                )
+            )
 
         # Validate assignments length
         if len(assignments) != n:
-            raise ValueError("The solution must contain exactly {} assignments; found {}.".format(n, len(assignments)))
+            raise ValueError(
+                "The solution must contain exactly {} assignments; found {}.".format(
+                    n, len(assignments)
+                )
+            )
 
         # Build a dictionary for quick lookup of customer data by customer_id.
         cust_dict = {}
@@ -231,13 +290,18 @@ class PMCEvaluationCB(Evaluation):
         # Verify that each median is a valid customer.
         for m in medians:
             if m not in cust_dict:
-                raise ValueError("Median {} is not found in the customer data.".format(m))
+                raise ValueError(
+                    "Median {} is not found in the customer data.".format(m)
+                )
 
         # Verify that each customer's assignment is one of the selected medians.
         for idx, a in enumerate(assignments):
             if a not in medians:
                 raise ValueError(
-                    "Customer {} is assigned to {} which is not in the list of selected medians.".format(idx + 1, a))
+                    "Customer {} is assigned to {} which is not in the list of selected medians.".format(
+                        idx + 1, a
+                    )
+                )
 
         # Check capacity constraints.
         capacity_usage = {m: 0.0 for m in medians}
@@ -248,9 +312,10 @@ class PMCEvaluationCB(Evaluation):
         for m, used in capacity_usage.items():
             if used > Q + 1e-6:  # small tolerance
                 raise ValueError(
-                    "Capacity exceeded for median {}: used capacity {:.4f} exceeds allowed capacity {:.4f}.".format(m,
-                                                                                                                    used,
-                                                                                                                    Q))
+                    "Capacity exceeded for median {}: used capacity {:.4f} exceeds allowed capacity {:.4f}.".format(
+                        m, used, Q
+                    )
+                )
 
         # Recompute the total cost.
         total_cost = 0
@@ -259,10 +324,14 @@ class PMCEvaluationCB(Evaluation):
             try:
                 cid, cx, cy, _ = customers[i]
             except Exception as e:
-                raise ValueError("Error accessing data for customer {}: {}".format(i + 1, e))
+                raise ValueError(
+                    "Error accessing data for customer {}: {}".format(i + 1, e)
+                )
             # Get the assigned median's coordinates.
             if a not in cust_dict:
-                raise ValueError("Assigned median {} for customer {} not found.".format(a, i + 1))
+                raise ValueError(
+                    "Assigned median {} for customer {} not found.".format(a, i + 1)
+                )
             mx, my, _ = cust_dict[a]
             d = math.sqrt((cx - mx) ** 2 + (cy - my) ** 2)
             total_cost += math.floor(d)
@@ -274,11 +343,6 @@ class PMCEvaluationCB(Evaluation):
         return score
 
     def get_dev(self):
-        dev = {'pmedcap1.txt': [3, 11, 16, 0, 4, 2, 1, 9, 19, 18]}
+        dev = {"pmedcap1.txt": [3, 11, 16, 0, 4, 2, 1, 9, 19, 18]}
 
         return dev
-
-
-
-
-

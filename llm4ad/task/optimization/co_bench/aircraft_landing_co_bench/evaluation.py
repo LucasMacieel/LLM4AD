@@ -22,34 +22,36 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.aircraft_landing_co_bench.template import template_program, task_description
 
-__all__ = ['ALEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.aircraft_landing_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["ALEvaluationCB"]
 
 
 class ALEvaluationCB(Evaluation):
     """Evaluator for aircraft landing."""
 
-    def __init__(self,
-                 timeout_seconds=300,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=300, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
@@ -59,45 +61,60 @@ class ALEvaluationCB(Evaluation):
             filename = f"airland{i}.txt"
             if filename in dataset:
                 # Join all text rows into a single string
-                text_content = '\n'.join([row['text'] for row in dataset[filename]])
+                text_content = "\n".join([row["text"] for row in dataset[filename]])
                 self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
         ins_cases = []
-        
+
         # Define runway configurations for each dataset (corresponds to airland1-13)
-        runway_configs = [[1, 2, 3],
-                         [1, 2, 3],
-                         [1, 2, 3],
-                         [1, 2, 3, 4],
-                         [1, 2, 3, 4],
-                         [1, 2, 3],
-                         [1, 2],
-                         [1, 2, 3],
-                         [1, 2, 3, 4],
-                         [1, 2, 3, 4, 5],
-                         [1, 2, 3, 4, 5],
-                         [1, 2, 3, 4, 5],
-                         [1, 2, 3, 4, 5]]
-        
+        runway_configs = [
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3],
+            [1, 2, 3, 4],
+            [1, 2, 3, 4],
+            [1, 2, 3],
+            [1, 2],
+            [1, 2, 3],
+            [1, 2, 3, 4],
+            [1, 2, 3, 4, 5],
+            [1, 2, 3, 4, 5],
+            [1, 2, 3, 4, 5],
+            [1, 2, 3, 4, 5],
+        ]
+
         for case_id, ins in enumerate(self._datasets.values()):
             base_case = self.load_data(ins)
             # Create variations with different runway configurations
             for num_runways in runway_configs[case_id]:
                 case_with_runways = base_case.copy()
-                case_with_runways['num_runways'] = num_runways
+                case_with_runways["num_runways"] = num_runways
                 ins_cases.append(case_with_runways)
 
         penalties = []
         try:
             for case in ins_cases:
-                schedule = eva(case['num_planes'], case['num_runways'], case['freeze_time'], case['planes'], case['separation'])
-                penalty = self.eval_func(num_planes=case['num_planes'], num_runways=case['num_runways'],
-                                         freeze_time=case['freeze_time'], separation=case['separation'], planes=case['planes'],
-                                         schedule=schedule)
+                schedule = eva(
+                    case["num_planes"],
+                    case["num_runways"],
+                    case["freeze_time"],
+                    case["planes"],
+                    case["separation"],
+                )
+                penalty = self.eval_func(
+                    num_planes=case["num_planes"],
+                    num_runways=case["num_runways"],
+                    freeze_time=case["freeze_time"],
+                    separation=case["separation"],
+                    planes=case["planes"],
+                    schedule=schedule,
+                )
                 penalties.append(penalty)
 
             return -np.mean(penalties)
@@ -129,7 +146,7 @@ class ALEvaluationCB(Evaluation):
 
         idx = 0
         total_lines = len(all_lines)
-        
+
         # Parse the first line: num_planes and freeze_time.
         try:
             tokens = all_lines[idx].split()
@@ -144,11 +161,15 @@ class ALEvaluationCB(Evaluation):
 
         for plane_index in range(num_planes):
             if idx >= total_lines:
-                raise ValueError(f"Insufficient lines for plane {plane_index + 1} parameters.")
+                raise ValueError(
+                    f"Insufficient lines for plane {plane_index + 1} parameters."
+                )
             params_tokens = all_lines[idx].split()
             idx += 1
             if len(params_tokens) < 6:
-                raise ValueError(f"Plane {plane_index + 1}: Expected 6 parameters, got {len(params_tokens)}.")
+                raise ValueError(
+                    f"Plane {plane_index + 1}: Expected 6 parameters, got {len(params_tokens)}."
+                )
             try:
                 appearance = float(params_tokens[0])
                 earliest = float(params_tokens[1])
@@ -157,22 +178,28 @@ class ALEvaluationCB(Evaluation):
                 penalty_early = float(params_tokens[4])
                 penalty_late = float(params_tokens[5])
             except Exception as e:
-                raise ValueError(f"Plane {plane_index + 1}: Error converting parameters: {e}")
+                raise ValueError(
+                    f"Plane {plane_index + 1}: Error converting parameters: {e}"
+                )
 
-            planes.append({
-                "appearance": appearance,
-                "earliest": earliest,
-                "target": target,
-                "latest": latest,
-                "penalty_early": penalty_early,
-                "penalty_late": penalty_late
-            })
+            planes.append(
+                {
+                    "appearance": appearance,
+                    "earliest": earliest,
+                    "target": target,
+                    "latest": latest,
+                    "penalty_early": penalty_early,
+                    "penalty_late": penalty_late,
+                }
+            )
 
             # Read exactly num_planes separation times (may span multiple lines)
             sep_tokens = []
             while len(sep_tokens) < num_planes:
                 if idx >= total_lines:
-                    raise ValueError(f"Not enough lines to read separation times for plane {plane_index + 1}.")
+                    raise ValueError(
+                        f"Not enough lines to read separation times for plane {plane_index + 1}."
+                    )
                 sep_tokens.extend(all_lines[idx].split())
                 idx += 1
             # In case more tokens were read than needed:
@@ -180,7 +207,9 @@ class ALEvaluationCB(Evaluation):
             try:
                 sep_times = [float(token) for token in sep_tokens]
             except Exception as e:
-                raise ValueError(f"Plane {plane_index + 1}: Error converting separation times: {e}")
+                raise ValueError(
+                    f"Plane {plane_index + 1}: Error converting separation times: {e}"
+                )
             separation.append(sep_times)
 
         # Return a single case dictionary (without num_runways, as that will be added later)
@@ -228,20 +257,29 @@ class ALEvaluationCB(Evaluation):
 
         # Check that schedule has exactly num_planes entries.
         if not isinstance(schedule, dict) or len(schedule) != num_planes:
-            raise ValueError(f"Schedule must be a dict with exactly {num_planes} entries.")
+            raise ValueError(
+                f"Schedule must be a dict with exactly {num_planes} entries."
+            )
 
         for plane_id in range(1, num_planes + 1):
             if plane_id not in schedule:
                 raise ValueError(f"Plane {plane_id} is missing in the schedule.")
             # Each schedule entry must be a dict with 'landing_time' and 'runway'
             entry = schedule[plane_id]
-            if not isinstance(entry, dict) or "landing_time" not in entry or "runway" not in entry:
-                raise ValueError(f"Schedule entry for plane {plane_id} must contain 'landing_time' and 'runway' keys.")
+            if (
+                not isinstance(entry, dict)
+                or "landing_time" not in entry
+                or "runway" not in entry
+            ):
+                raise ValueError(
+                    f"Schedule entry for plane {plane_id} must contain 'landing_time' and 'runway' keys."
+                )
             # Check runway assignment is valid.
             runway = entry["runway"]
             if not isinstance(runway, int) or runway < 1 or runway > num_runways:
                 raise ValueError(
-                    f"Plane {plane_id} assigned runway {runway} is invalid. Must be between 1 and {num_runways}.")
+                    f"Plane {plane_id} assigned runway {runway} is invalid. Must be between 1 and {num_runways}."
+                )
 
         # 1. Check landing time window constraints.
         for i in range(1, num_planes + 1):
@@ -325,18 +363,35 @@ class ALEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'airland1.txt': [0], 'airland10.txt': [2, 1], 'airland11.txt': [0, 1], 'airland12.txt': [3, 4],
-               'airland13.txt': [0, 3], 'airland2.txt': [2], 'airland3.txt': [2], 'airland4.txt': [1, 3],
-               'airland5.txt': [0, 1],
-               'airland6.txt': [1], 'airland7.txt': [1], 'airland8.txt': [2], 'airland9.txt': [0, 1]}
+        dev = {
+            "airland1.txt": [0],
+            "airland10.txt": [2, 1],
+            "airland11.txt": [0, 1],
+            "airland12.txt": [3, 4],
+            "airland13.txt": [0, 3],
+            "airland2.txt": [2],
+            "airland3.txt": [2],
+            "airland4.txt": [1, 3],
+            "airland5.txt": [0, 1],
+            "airland6.txt": [1],
+            "airland7.txt": [1],
+            "airland8.txt": [2],
+            "airland9.txt": [0, 1],
+        }
         return dev
+
 
 if __name__ == "__main__":
     evaluator = ALEvaluationCB()
     import random
 
-    def solve(num_planes: int, num_runways: int, freeze_time: float, planes: list[dict],
-              separation: list[list[int]]) -> dict:
+    def solve(
+        num_planes: int,
+        num_runways: int,
+        freeze_time: float,
+        planes: list[dict],
+        separation: list[list[int]],
+    ) -> dict:
         """
         Problem:
             Given an instance of the Aircraft Landing Scheduling Problem, schedule the landing time for each plane and assign a runway so that:
@@ -370,8 +425,11 @@ if __name__ == "__main__":
         # (Note: This solution may be infeasible if targets do not satisfy separation constraints.)
         schedule = {}
         for i, plane in enumerate(planes, start=1):
-            schedule[i] = {"landing_time": plane["target"], "runway": random.randint(1, num_runways + 1)}
+            schedule[i] = {
+                "landing_time": plane["target"],
+                "runway": random.randint(1, num_runways + 1),
+            }
         return {"schedule": schedule}
 
-    results = evaluator.evaluate_program('', solve)
+    results = evaluator.evaluate_program("", solve)
     print(results)

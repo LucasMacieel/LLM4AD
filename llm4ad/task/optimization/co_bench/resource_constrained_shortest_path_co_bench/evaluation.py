@@ -22,44 +22,49 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.resource_constrained_shortest_path_co_bench.template import template_program, task_description
 
-__all__ = ['RCSPEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.resource_constrained_shortest_path_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["RCSPEvaluationCB"]
 
 
 class RCSPEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
-        dataset = load_subdir_as_text("CO-Bench/CO-Bench", "Resource constrained shortest path")
+        dataset = load_subdir_as_text(
+            "CO-Bench/CO-Bench", "Resource constrained shortest path"
+        )
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +76,26 @@ class RCSPEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['n'], j['m'], j['K'], j['lower_bounds'], j['upper_bounds'], j['vertex_resources'], j['graph'])
-                    fitness = self.eval_func(j['n'], j['m'], j['K'], j['lower_bounds'], j['upper_bounds'], j['vertex_resources'], j['graph'], result['total_cost'], result['path'])
+                    result = eva(
+                        j["n"],
+                        j["m"],
+                        j["K"],
+                        j["lower_bounds"],
+                        j["upper_bounds"],
+                        j["vertex_resources"],
+                        j["graph"],
+                    )
+                    fitness = self.eval_func(
+                        j["n"],
+                        j["m"],
+                        j["K"],
+                        j["lower_bounds"],
+                        j["upper_bounds"],
+                        j["vertex_resources"],
+                        j["graph"],
+                        result["total_cost"],
+                        result["path"],
+                    )
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -156,13 +179,24 @@ class RCSPEvaluationCB(Evaluation):
                 "lower_bounds": lower_bounds,
                 "upper_bounds": upper_bounds,
                 "vertex_resources": vertex_resources,
-                "graph": graph
+                "graph": graph,
             }
             cases.append(case)
 
         return cases
 
-    def eval_func(self, n, m, K, lower_bounds, upper_bounds, vertex_resources, graph, total_cost, path):
+    def eval_func(
+        self,
+        n,
+        m,
+        K,
+        lower_bounds,
+        upper_bounds,
+        vertex_resources,
+        graph,
+        total_cost,
+        path,
+    ):
         """
         Evaluate the solution for one case of the Resource Constrained Shortest Path problem.
         Parameters:
@@ -184,7 +218,9 @@ class RCSPEvaluationCB(Evaluation):
 
         # Check basic validity of the path.
         if not path or path[0] != 1 or path[-1] != n:
-            raise ValueError("Invalid solution: path must start at vertex 1 and end at vertex n.")
+            raise ValueError(
+                "Invalid solution: path must start at vertex 1 and end at vertex n."
+            )
 
         computed_cost = 0.0
         total_resources = [0.0] * K
@@ -192,7 +228,9 @@ class RCSPEvaluationCB(Evaluation):
         # Add resource consumption from vertices.
         for vertex in path:
             if vertex < 1 or vertex > n:
-                raise ValueError(f"Invalid solution: vertex {vertex} is out of valid range 1 to {n}.")
+                raise ValueError(
+                    f"Invalid solution: vertex {vertex} is out of valid range 1 to {n}."
+                )
             for k in range(K):
                 total_resources[k] += vertex_resources[vertex - 1][k]
 
@@ -201,7 +239,7 @@ class RCSPEvaluationCB(Evaluation):
             u = path[i]
             v = path[i + 1]
             valid_arc = False
-            for (dest, arc_cost, arc_res) in graph.get(u, []):
+            for dest, arc_cost, arc_res in graph.get(u, []):
                 if dest == v:
                     valid_arc = True
                     computed_cost += arc_cost
@@ -209,11 +247,16 @@ class RCSPEvaluationCB(Evaluation):
                         total_resources[k] += arc_res[k]
                     break
             if not valid_arc:
-                raise ValueError(f"Invalid solution: no valid arc from vertex {u} to vertex {v}.")
+                raise ValueError(
+                    f"Invalid solution: no valid arc from vertex {u} to vertex {v}."
+                )
 
         # Verify resource constraints.
         for k in range(K):
-            if total_resources[k] < lower_bounds[k] - 1e-6 or total_resources[k] > upper_bounds[k] + 1e-6:
+            if (
+                total_resources[k] < lower_bounds[k] - 1e-6
+                or total_resources[k] > upper_bounds[k] + 1e-6
+            ):
                 raise ValueError(
                     f"Invalid solution: total consumption for resource {k} is {total_resources[k]}, "
                     f"which is outside the bounds [{lower_bounds[k]}, {upper_bounds[k]}]."
@@ -246,7 +289,7 @@ class RCSPEvaluationCB(Evaluation):
             "rcsp21.txt": [858],
             "rcsp22.txt": [858],
             "rcsp23.txt": [3.34],
-            "rcsp24.txt": [3.74]
+            "rcsp24.txt": [3.74],
         }
 
         normed = {}
@@ -266,15 +309,19 @@ class RCSPEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'rcsp1.txt': [], 'rcsp11.txt': [], 'rcsp13.txt': [],
-               'rcsp15.txt': [], 'rcsp17.txt': [], 'rcsp19.txt': [],
-               'rcsp21.txt': [], 'rcsp23.txt': [], 'rcsp3.txt': [],
-               'rcsp5.txt': [], 'rcsp7.txt': [], 'rcsp9.txt': []}
+        dev = {
+            "rcsp1.txt": [],
+            "rcsp11.txt": [],
+            "rcsp13.txt": [],
+            "rcsp15.txt": [],
+            "rcsp17.txt": [],
+            "rcsp19.txt": [],
+            "rcsp21.txt": [],
+            "rcsp23.txt": [],
+            "rcsp3.txt": [],
+            "rcsp5.txt": [],
+            "rcsp7.txt": [],
+            "rcsp9.txt": [],
+        }
 
         return dev
-
-
-
-
-
-

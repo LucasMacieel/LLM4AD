@@ -1,21 +1,21 @@
-import gymnasium as gym
-import numpy as np
-import matplotlib.pyplot as plt
-import io
-from io import BytesIO
-import base64
 import copy
 import time
+
+import gymnasium as gym
+import numpy as np
 
 
 def moon_lander_feature(seed, env_max_episode_steps=200):
     """Evaluate heuristic function on moon lander problem."""
     start_time = time.time()
-    env = gym.make('LunarLander-v3', render_mode='rgb_array',
-                   gravity=-10,
-                   enable_wind=False,
-                   wind_power=15,
-                   turbulence_power=1.5)
+    env = gym.make(
+        "LunarLander-v3",
+        render_mode="rgb_array",
+        gravity=-10,
+        enable_wind=False,
+        wind_power=15,
+        turbulence_power=1.5,
+    )
     observation, _ = env.reset(seed=seed)  # initialization
     action = 0  # initial action
     episode_reward = 0
@@ -63,4 +63,4 @@ def moon_lander_feature(seed, env_max_episode_steps=200):
 
 if __name__ == "__main__":
     feature = moon_lander_feature(42)
-    print('finish')
+    print("finish")

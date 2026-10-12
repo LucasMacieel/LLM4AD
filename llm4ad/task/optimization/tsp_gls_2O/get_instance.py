@@ -3,8 +3,8 @@ import numpy.typing as npt
 from scipy.spatial import distance_matrix
 
 
-class GetData():
-    def __init__(self,n_instance,n_cities):
+class GetData:
+    def __init__(self, n_instance, n_cities):
         self.n_instance = n_instance
         self.n_cities = n_cities
 
@@ -16,8 +16,9 @@ class GetData():
             instance_data.append(TSPInstance(coordinates))
         return instance_data
 
+
 class TSPInstance:
     def __init__(self, positions: npt.NDArray[np.float64]) -> None:
         self.positions = positions
         self.n = positions.shape[0]
-        self.distmat = distance_matrix(positions, positions) + np.eye(self.n)*1e-5
+        self.distmat = distance_matrix(positions, positions) + np.eye(self.n) * 1e-5

@@ -1,2 +1,2 @@
 from .mles import MLES
-from .profiler import MLESProfiler, EoHTensorboardProfiler, EoHWandbProfiler
+from .profiler import EoHTensorboardProfiler, EoHWandbProfiler, MLESProfiler

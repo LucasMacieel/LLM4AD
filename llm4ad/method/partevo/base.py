@@ -23,9 +23,11 @@
 # http://www.llm4ad.com/contact.html
 # --------------------------------------------------------------------------
 
-from llm4ad.base.code import Function
 from dataclasses import dataclass, field
 from typing import Any, List, Optional
+
+from llm4ad.base.code import Function
+
 
 @dataclass
 class Evoind:
@@ -36,6 +38,7 @@ class Evoind:
     An Evoind is the basic unit for selection, elimination, and other operations
     within the algorithm pool.
     """
+
     function: Function
     cluster_id: Optional[int] = None
 

@@ -25,14 +25,17 @@
 
 from __future__ import annotations
 
-import math
-import numpy as np
-from typing import List, Tuple, Literal, Optional, Dict, Any
-from llm4ad.base import Function
-from .base import Evoind
-from threading import RLock
 import itertools
+import math
 import random
+from threading import RLock
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+
+from llm4ad.base import Function
+
+from .base import Evoind
 
 
 class ClusterUnit:
@@ -47,18 +50,20 @@ class ClusterUnit:
 
     # Mapping of evolutionary operators to their default selection strategies
     OPERATOR_SELECTION_MAP = {
-        're': 'tournament',
-        'se': 'tournament',
-        'cc': 'tournament',
-        'lge': 'random'
+        "re": "tournament",
+        "se": "tournament",
+        "cc": "tournament",
+        "lge": "random",
     }
 
-    def __init__(self, cluster_id: int,
-                 max_pop_size: int,
-                 intra_operators: Tuple[str, ...],  # ('re', 'se', 'cc', 'lge')
-                 intra_operators_parent_num: Dict[str, int],
-                 pop: List[Evoind] | ClusterUnit | None = None,
-                 ):
+    def __init__(
+        self,
+        cluster_id: int,
+        max_pop_size: int,
+        intra_operators: Tuple[str, ...],  # ('re', 'se', 'cc', 'lge')
+        intra_operators_parent_num: Dict[str, int],
+        pop: List[Evoind] | ClusterUnit | None = None,
+    ):
         """
         Initializes the ClusterUnit (Niche).
 
@@ -73,7 +78,7 @@ class ClusterUnit:
             self._population = []
         elif isinstance(pop, list):
             self._population = pop.copy()
-        elif hasattr(pop, '_population'):
+        elif hasattr(pop, "_population"):
             self._population = pop._population.copy()
         else:
             self._population = []
@@ -82,32 +87,44 @@ class ClusterUnit:
         self._max_pop_size = max_pop_size
 
         self.cumulative_Non_improvement_count = 0
-        self._history_best_score = float('-inf')
+        self._history_best_score = float("-inf")
 
         self._lock = RLock()
 
         self.intra_operators = intra_operators
         # Default requirement: cc needs 1 internal parent (the other is provided externally).
-        self.intra_operators_parent_num = intra_operators_parent_num or {'re': 1, 'se': 1, 'cc': 1, 'lge': 1}
+        self.intra_operators_parent_num = intra_operators_parent_num or {
+            "re": 1,
+            "se": 1,
+            "cc": 1,
+            "lge": 1,
+        }
         self._intra_operators_iterator = itertools.cycle(self.intra_operators)
 
     def __len__(self):
-        with self._lock: return len(self._population)
+        with self._lock:
+            return len(self._population)
 
     def __getitem__(self, item) -> Evoind:
-        with self._lock: return self._population[item]
+        with self._lock:
+            return self._population[item]
 
     def __setitem__(self, key, value):
-        with self._lock: self._population[key] = value
+        with self._lock:
+            self._population[key] = value
 
     @property
     def population(self):
         """Returns a thread-safe copy of the current sub-population list."""
-        with self._lock: return self._population.copy()
+        with self._lock:
+            return self._population.copy()
 
-    def _calculate_dynamic_scores(self, population: List[Evoind],
-                                  help_inter: bool,
-                                  target_instances: Optional[List[Any]]) -> List[Tuple[Evoind, float]]:
+    def _calculate_dynamic_scores(
+        self,
+        population: List[Evoind],
+        help_inter: bool,
+        target_instances: Optional[List[Any]],
+    ) -> List[Tuple[Evoind, float]]:
         """
         Calculates fitness scores for selection.
 
@@ -128,28 +145,30 @@ class ClusterUnit:
                 if ind.function.all_ins_performance:
                     for ins_id in target_instances:
                         perf = ind.function.all_ins_performance.get(ins_id)
-                        if perf and perf.get('score') is not None:
-                            s = perf['score']
-                            if s != float('-inf'):
+                        if perf and perf.get("score") is not None:
+                            s = perf["score"]
+                            if s != float("-inf"):
                                 score_sum += s
                                 valid_cnt += 1
 
                 # If target instances are specified but individual hasn't run them, penalize
-                eff_score = score_sum if valid_cnt > 0 else float('-inf')
+                eff_score = score_sum if valid_cnt > 0 else float("-inf")
 
             if eff_score is not None and not math.isinf(eff_score):
                 candidates_with_score.append((ind, eff_score))
 
         return candidates_with_score
 
-    def selection(self, existing_functions: Optional[List[Function]] = None,
-                  best_must: bool = False,
-                  mode: str = None,
-                  help_inter: bool = False,
-                  help_number: int = 1,
-                  tournament_k: int = 3,
-                  target_instances: Optional[List[Any]] = None
-                  ) -> Tuple[List[Function], str | None, bool]:
+    def selection(
+        self,
+        existing_functions: Optional[List[Function]] = None,
+        best_must: bool = False,
+        mode: str = None,
+        help_inter: bool = False,
+        help_number: int = 1,
+        tournament_k: int = 3,
+        target_instances: Optional[List[Any]] = None,
+    ) -> Tuple[List[Function], str | None, bool]:
         """
         Unified selection interface for the clusterUnit.
 
@@ -176,21 +195,23 @@ class ClusterUnit:
                 current_operator = None
                 need_external_help = False
                 if mode is None:
-                    mode = 'tournament'
+                    mode = "tournament"
             else:
                 # [Requester Mode]: Evolve locally, cycle through operators
                 current_operator = next(self._intra_operators_iterator)
                 number = self.intra_operators_parent_num.get(current_operator, 1)
 
                 # Determine if the operator requires external collaboration (e.g., Crossover)
-                if current_operator == 'cc':
+                if current_operator == "cc":
                     need_external_help = True
-                elif current_operator == 'lge':
+                elif current_operator == "lge":
                     need_external_help = True
 
                 # Dynamic Strategy Selection based on operator
                 if mode is None:
-                    mode = self.OPERATOR_SELECTION_MAP.get(current_operator, 'tournament')
+                    mode = self.OPERATOR_SELECTION_MAP.get(
+                        current_operator, "tournament"
+                    )
 
             # --- Step 1: Population Filtering ---
             full_population = self._population.copy()
@@ -198,7 +219,11 @@ class ClusterUnit:
 
             if existing_functions:
                 existing_ids = {id(func) for func in existing_functions}
-                valid_pop = [ind for ind in full_population if id(ind.function) not in existing_ids]
+                valid_pop = [
+                    ind
+                    for ind in full_population
+                    if id(ind.function) not in existing_ids
+                ]
 
             # Fallback: if filtering leaves no one, revert to full population
             if not valid_pop and full_population:
@@ -208,11 +233,15 @@ class ClusterUnit:
                 return [], current_operator, False
 
             # --- Step 2: Fitness Calculation ---
-            candidates_with_score = self._calculate_dynamic_scores(valid_pop, help_inter, target_instances)
+            candidates_with_score = self._calculate_dynamic_scores(
+                valid_pop, help_inter, target_instances
+            )
 
             # Fallback for insufficient candidates
             if len(candidates_with_score) < number:
-                candidates_with_score = self._calculate_dynamic_scores(full_population, help_inter, target_instances)
+                candidates_with_score = self._calculate_dynamic_scores(
+                    full_population, help_inter, target_instances
+                )
                 if len(candidates_with_score) < number:
                     return [], current_operator, False
 
@@ -220,23 +249,28 @@ class ClusterUnit:
             selected_individuals = []
 
             # A. Top-N (Greedy)
-            if mode == 'top':
+            if mode == "top":
                 candidates_with_score.sort(key=lambda x: x[1], reverse=True)
                 selected_individuals = [x[0] for x in candidates_with_score[:number]]
 
             # B. Tournament Selection
-            elif mode == 'tournament':
+            elif mode == "tournament":
                 pool_indices = list(range(len(candidates_with_score)))
                 for _ in range(number):
-                    if not pool_indices: break
+                    if not pool_indices:
+                        break
                     k = min(len(pool_indices), tournament_k)
-                    chosen_indices = np.random.choice(pool_indices, size=k, replace=False)
-                    best_idx = max(chosen_indices, key=lambda i: candidates_with_score[i][1])
+                    chosen_indices = np.random.choice(
+                        pool_indices, size=k, replace=False
+                    )
+                    best_idx = max(
+                        chosen_indices, key=lambda i: candidates_with_score[i][1]
+                    )
                     selected_individuals.append(candidates_with_score[best_idx][0])
                     pool_indices.remove(best_idx)
 
             # C. Uniform Random (High Diversity)
-            elif mode == 'random':
+            elif mode == "random":
                 if len(candidates_with_score) >= number:
                     chosen_tuples = random.sample(candidates_with_score, number)
                     selected_individuals = [t[0] for t in chosen_tuples]
@@ -244,13 +278,13 @@ class ClusterUnit:
                     selected_individuals = [t[0] for t in candidates_with_score]
 
             # D. Probabilistic Sampling (Roulette/Exponential)
-            elif mode in ['roulette', 'linear', 'exp']:
+            elif mode in ["roulette", "linear", "exp"]:
                 candidates_with_score.sort(key=lambda x: x[1], reverse=True)
                 sorted_inds = [x[0] for x in candidates_with_score]
 
-                if mode == 'exp':
+                if mode == "exp":
                     p = np.exp(-np.arange(len(sorted_inds)) / 2.0)
-                elif mode == 'linear':
+                elif mode == "linear":
                     weights = np.arange(len(sorted_inds), 0, -1)
                     p = weights
                 else:
@@ -261,7 +295,10 @@ class ClusterUnit:
                 probabilities = p / np.sum(p)
                 try:
                     selected_individuals = list(
-                        np.random.choice(sorted_inds, size=number, p=probabilities, replace=False))
+                        np.random.choice(
+                            sorted_inds, size=number, p=probabilities, replace=False
+                        )
+                    )
                 except ValueError:
                     selected_individuals = sorted_inds[:number]
 
@@ -275,7 +312,11 @@ class ClusterUnit:
                 global_best = max(valid_pop, key=lambda ind: ind.function.score)
                 if not any(ind is global_best for ind in selected_individuals):
                     selected_individuals[-1] = global_best
-        return [ind.function for ind in selected_individuals], current_operator, need_external_help
+        return (
+            [ind.function for ind in selected_individuals],
+            current_operator,
+            need_external_help,
+        )
 
     def has_duplicate_function(self, func: str | Evoind) -> bool:
         """Checks if an individual with identical code already exists in the cluster."""
@@ -298,8 +339,8 @@ class ClusterUnit:
             # --- 1. Deduplication and Replacement Logic ---
             replaced = False
             for i, ind in enumerate(self._population):
-                is_same_code = (ind.function.body == new_individual.function.body)
-                is_same_score = (abs(ind.function.score - new_score) < 1e-9)
+                is_same_code = ind.function.body == new_individual.function.body
+                is_same_score = abs(ind.function.score - new_score) < 1e-9
 
                 if is_same_code or is_same_score:
                     # Only replace if the new individual is better or equal (rejuvenation)
@@ -341,16 +382,20 @@ class ClusterUnit:
         unique_map: Dict[str, Evoind] = {}
         for ind in self._population:
             code_key = ind.function.body
-            if code_key not in unique_map or ind.function.score >= unique_map[code_key].function.score:
+            if (
+                code_key not in unique_map
+                or ind.function.score >= unique_map[code_key].function.score
+            ):
                 unique_map[code_key] = ind
 
         # Sort by score descending and truncate
         sorted_pop = list(unique_map.values())
         sorted_pop.sort(key=lambda ind: ind.function.score, reverse=True)
-        self._population = sorted_pop[:self._max_pop_size]
+        self._population = sorted_pop[: self._max_pop_size]
 
     def get_best_individual(self) -> Evoind | None:
         """Returns the highest-scoring individual in the Niche."""
         with self._lock:
-            if not self._population: return None
+            if not self._population:
+                return None
             return max(self._population, key=lambda ind: ind.function.score)

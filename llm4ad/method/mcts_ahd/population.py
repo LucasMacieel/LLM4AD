@@ -1,16 +1,22 @@
 from __future__ import annotations
 
 import math
-import random
 from threading import Lock
 from typing import List
+
 import numpy as np
 
 from ...base import *
 
 
 class Population:
-    def __init__(self, init_pop_size, pop_size, generation=0, pop: List[Function] | Population | None = None):
+    def __init__(
+        self,
+        init_pop_size,
+        pop_size,
+        generation=0,
+        pop: List[Function] | Population | None = None,
+    ):
         if pop is None:
             self._population = []
         elif isinstance(pop, list):
@@ -45,7 +51,7 @@ class Population:
     def generation(self):
         return self._generation
 
-    def survival(self, pop_size: int=None):
+    def survival(self, pop_size: int = None):
         if pop_size is None:
             pop_size = self._pop_size
 
@@ -64,7 +70,7 @@ class Population:
         self._next_gen_pop = []
         self._generation += 1
 
-    def survival_s1(self, pop_size: int=None):
+    def survival_s1(self, pop_size: int = None):
         if pop_size is None:
             pop_size = self._pop_size
 
@@ -90,7 +96,7 @@ class Population:
         # if the score is None, we still put it into the population,
         # we set the score to '-inf'
         if func.score is None:
-            func.score = float('-inf')
+            func.score = float("-inf")
         try:
             self._lock.acquire()
             # if self.has_duplicate_function(func):
@@ -105,7 +111,9 @@ class Population:
         finally:
             self._lock.release()
 
-    def has_duplicate_function(self, func: str | Function, pop:List[Function]=None) -> bool:
+    def has_duplicate_function(
+        self, func: str | Function, pop: List[Function] = None
+    ) -> bool:
         if pop is None:
             pop = self._population
         for f in pop:
@@ -116,7 +124,7 @@ class Population:
                 return True
         return False
 
-    def selection(self, pop:List[Function]=None) -> Function:
+    def selection(self, pop: List[Function] = None) -> Function:
         if pop is None:
             pop = self._population
         funcs = [f for f in pop if not math.isinf(f.score)]
@@ -126,7 +134,7 @@ class Population:
         p = p / np.sum(p)
         return np.random.choice(func, p=p)
 
-    def selection_e1(self, pop:List[Function]=None) -> Function:
+    def selection_e1(self, pop: List[Function] = None) -> Function:
         if pop is None:
             pop = self._population
         funcs = [f for f in pop if not math.isinf(f.score)]

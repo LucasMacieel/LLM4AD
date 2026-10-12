@@ -25,10 +25,10 @@ def get_sampling_obj(key, **kwargs):
         return SAMPLING_FUNC_DICT[key]
     elif key in SAMPLING_CLASS_DICT:
         return SAMPLING_CLASS_DICT[key](**kwargs)
-    raise KeyError(f'`{key}` is not expected as a sampling object key')
+    raise KeyError(f"`{key}` is not expected as a sampling object key")
 
 
 def get_eq_obj(key, **kwargs):
     if key in EQUATION_CLASS_DICT:
         return EQUATION_CLASS_DICT[key](**kwargs)
-    raise KeyError(f'`{key}` is not expected as a equation object key')
+    raise KeyError(f"`{key}` is not expected as a equation object key")

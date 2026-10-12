@@ -42,13 +42,15 @@ def solve(n_jobs: int, n_machines: int, times: list, machines: list) -> dict:
     return solution
 '''
 
-task_description = ("The Open Shop Scheduling Problem involves scheduling a set of jobs across a set of machines with "
-                    "the goal of minimizing the total completion time (makespan). Each job consists of several "
-                    "operations, where each operation must be processed on a specific machine for a given duration. "
-                    "Unlike other scheduling problems, the Open Shop variant has no predetermined order for "
-                    "processing the operations of a job—operations can be scheduled in any order, but a job can only "
-                    "be processed on one machine at a time, and a machine can only process one job at a time. This "
-                    "creates a complex combinatorial optimization challenge where the scheduler must determine both "
-                    "the sequence of operations for each job and the timing of each operation to minimize the overall "
-                    "completion time while ensuring no resource conflicts."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The Open Shop Scheduling Problem involves scheduling a set of jobs across a set of machines with "
+    "the goal of minimizing the total completion time (makespan). Each job consists of several "
+    "operations, where each operation must be processed on a specific machine for a given duration. "
+    "Unlike other scheduling problems, the Open Shop variant has no predetermined order for "
+    "processing the operations of a job—operations can be scheduled in any order, but a job can only "
+    "be processed on one machine at a time, and a machine can only process one job at a time. This "
+    "creates a complex combinatorial optimization challenge where the scheduler must determine both "
+    "the sequence of operations for each job and the timing of each operation to minimize the overall "
+    "completion time while ensuring no resource conflicts."
+    "Help me design a novel algorithm to solve this problem."
+)

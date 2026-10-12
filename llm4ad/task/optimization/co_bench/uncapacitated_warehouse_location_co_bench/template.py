@@ -34,12 +34,14 @@ def solve(m: int, n: int, warehouses: list, customers: list) -> dict:
     }
 '''
 
-task_description = ("The Uncapacitated Warehouse Location Problem aims to determine which warehouses to open and how "
-                    "to assign each customer entirely to an open warehouse in order to minimize the total cost. Given "
-                    "a set of potential warehouse locations, each with a fixed opening cost, and a set of customers, "
-                    "each with an associated assignment cost for being served by each warehouse, the objective is to "
-                    "select a subset of warehouses to open and assign every customer completely to one of these open "
-                    "warehouses. The optimization minimizes the sum of fixed warehouse opening costs and the customer "
-                    "assignment costs. Each customer must be assigned to exactly one warehouse; if any customer is "
-                    "left unassigned or assigned to more than one warehouse, the solution is considered infeasible."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The Uncapacitated Warehouse Location Problem aims to determine which warehouses to open and how "
+    "to assign each customer entirely to an open warehouse in order to minimize the total cost. Given "
+    "a set of potential warehouse locations, each with a fixed opening cost, and a set of customers, "
+    "each with an associated assignment cost for being served by each warehouse, the objective is to "
+    "select a subset of warehouses to open and assign every customer completely to one of these open "
+    "warehouses. The optimization minimizes the sum of fixed warehouse opening costs and the customer "
+    "assignment costs. Each customer must be assigned to exactly one warehouse; if any customer is "
+    "left unassigned or assigned to more than one warehouse, the solution is considered infeasible."
+    "Help me design a novel algorithm to solve this problem."
+)

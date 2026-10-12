@@ -22,33 +22,34 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.set_partitioning_co_bench.template import template_program, task_description
 
-__all__ = ['SPEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.set_partitioning_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["SPEvaluationCB"]
 
 
 class SPEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
@@ -56,10 +57,12 @@ class SPEvaluationCB(Evaluation):
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +74,13 @@ class SPEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['num_rows'], j['num_columns'], j['columns_info'])
-                    fitness = self.eval_func(num_rows=j['num_rows'], num_columns=j['num_columns'], columns_info=j['columns_info'], selected_columns=result['selected_columns'])
+                    result = eva(j["num_rows"], j["num_columns"], j["columns_info"])
+                    fitness = self.eval_func(
+                        num_rows=j["num_rows"],
+                        num_columns=j["num_columns"],
+                        columns_info=j["columns_info"],
+                        selected_columns=result["selected_columns"],
+                    )
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -97,7 +105,9 @@ class SPEvaluationCB(Evaluation):
                          - 'columns_info': dict mapping column index (1-indexed) -> (cost, set(row_indices))
         """
         cases = []
-        lines = [line.strip() for line in input_string.split('\n') if line.strip() != '']
+        lines = [
+            line.strip() for line in input_string.split("\n") if line.strip() != ""
+        ]
 
         index = 0
         total_lines = len(lines)
@@ -107,7 +117,9 @@ class SPEvaluationCB(Evaluation):
             header_tokens = lines[index].split()
             index += 1
             if len(header_tokens) < 2:
-                raise ValueError("Header must contain two integers: num_rows and num_columns.")
+                raise ValueError(
+                    "Header must contain two integers: num_rows and num_columns."
+                )
             try:
                 num_rows = int(header_tokens[0])
                 num_columns = int(header_tokens[1])
@@ -118,12 +130,16 @@ class SPEvaluationCB(Evaluation):
             # There must be exactly num_columns lines following for the columns.
             for j in range(1, num_columns + 1):
                 if index >= total_lines:
-                    raise ValueError("Insufficient lines for all columns' data in a case.")
+                    raise ValueError(
+                        "Insufficient lines for all columns' data in a case."
+                    )
                 parts = lines[index].split()
                 index += 1
 
                 if len(parts) < 2:
-                    raise ValueError("Each column line must have at least 2 tokens (cost and count).")
+                    raise ValueError(
+                        "Each column line must have at least 2 tokens (cost and count)."
+                    )
                 try:
                     cost = int(parts[0])
                     count = int(parts[1])
@@ -131,7 +147,9 @@ class SPEvaluationCB(Evaluation):
                     raise ValueError("Column cost and count must be integers.")
 
                 if len(parts) != 2 + count:
-                    raise ValueError(f"Column {j} is expected to have {2 + count} tokens, but got {len(parts)}.")
+                    raise ValueError(
+                        f"Column {j} is expected to have {2 + count} tokens, but got {len(parts)}."
+                    )
                 try:
                     row_list = [int(tok) for tok in parts[2:]]
                 except Exception:
@@ -139,16 +157,20 @@ class SPEvaluationCB(Evaluation):
 
                 for r in row_list:
                     if r < 1 or r > num_rows:
-                        raise ValueError("Row index out of the valid range (1 to num_rows).")
+                        raise ValueError(
+                            "Row index out of the valid range (1 to num_rows)."
+                        )
 
                 columns_info[j] = (cost, set(row_list))
 
             # Append the case as a dictionary.
-            cases.append({
-                "num_rows": num_rows,
-                "num_columns": num_columns,
-                "columns_info": columns_info
-            })
+            cases.append(
+                {
+                    "num_rows": num_rows,
+                    "num_columns": num_columns,
+                    "columns_info": columns_info,
+                }
+            )
 
         if not cases:
             raise ValueError("Input file is empty or contains no valid cases.")
@@ -180,13 +202,19 @@ class SPEvaluationCB(Evaluation):
             raise ValueError("selected_columns must be provided as a list.")
 
         # Enforce that the list is in strictly increasing order and has no duplicates.
-        if selected_columns != sorted(selected_columns) or len(selected_columns) != len(set(selected_columns)):
-            raise ValueError("selected_columns must be in strictly increasing order with no duplicates.")
+        if selected_columns != sorted(selected_columns) or len(selected_columns) != len(
+            set(selected_columns)
+        ):
+            raise ValueError(
+                "selected_columns must be in strictly increasing order with no duplicates."
+            )
 
         # Validate each selected column index.
         for col in selected_columns:
             if not isinstance(col, int) or col < 1 or col > num_columns:
-                raise ValueError(f"Invalid column index: {col}. Must be an integer between 1 and {num_columns}.")
+                raise ValueError(
+                    f"Invalid column index: {col}. Must be an integer between 1 and {num_columns}."
+                )
 
         total_cost = 0
         row_coverage = [0] * (num_rows + 1)  # 1-indexed; index 0 is unused.
@@ -199,13 +227,17 @@ class SPEvaluationCB(Evaluation):
             total_cost += cost
             for r in covered_rows:
                 if r < 1 or r > num_rows:
-                    raise ValueError(f"Invalid row index: {r} (must be between 1 and {num_rows}).")
+                    raise ValueError(
+                        f"Invalid row index: {r} (must be between 1 and {num_rows})."
+                    )
                 row_coverage[r] += 1
 
         # Ensure that every row is covered exactly once.
         for r in range(1, num_rows + 1):
             if row_coverage[r] != 1:
-                raise ValueError(f"Row {r} is covered {row_coverage[r]} times; each row must be covered exactly once.")
+                raise ValueError(
+                    f"Row {r} is covered {row_coverage[r]} times; each row must be covered exactly once."
+                )
 
         return total_cost
 
@@ -271,7 +303,6 @@ class SPEvaluationCB(Evaluation):
             "sppus04.txt": [17854],
             "sppaa01.txt": [55535.4],
             "sppaa04.txt": [25877.6],
-
         }
 
         normed = {}
@@ -291,26 +322,36 @@ class SPEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'bills_snowflake.txt': [0], 'meteor.txt': [0],
-               'sppaa02.txt': [0], 'sppaa04.txt': [0], 'sppaa05.txt': [0],
-
-               'sppkl02.txt': [0],
-               'sppnw02.txt': [0],
-               'sppnw04.txt': [0], 'sppnw06.txt': [0],
-               'sppnw08.txt': [0], 'sppnw10.txt': [0], 'sppnw12.txt': [0],
-               'sppnw14.txt': [0], 'sppnw16.txt': [0],
-               'sppnw18.txt': [0], 'sppnw20.txt': [0], 'sppnw22.txt': [0],
-               'sppnw24.txt': [0], 'sppnw26.txt': [0],
-               'sppnw28.txt': [0], 'sppnw30.txt': [0], 'sppnw32.txt': [0],
-               'sppnw34.txt': [0], 'sppnw36.txt': [0],
-               'sppnw38.txt': [0], 'sppnw40.txt': [0], 'sppnw42.txt': [0],
-               'sppus02.txt': [0], 'sppus04.txt': [0]}
+        dev = {
+            "bills_snowflake.txt": [0],
+            "meteor.txt": [0],
+            "sppaa02.txt": [0],
+            "sppaa04.txt": [0],
+            "sppaa05.txt": [0],
+            "sppkl02.txt": [0],
+            "sppnw02.txt": [0],
+            "sppnw04.txt": [0],
+            "sppnw06.txt": [0],
+            "sppnw08.txt": [0],
+            "sppnw10.txt": [0],
+            "sppnw12.txt": [0],
+            "sppnw14.txt": [0],
+            "sppnw16.txt": [0],
+            "sppnw18.txt": [0],
+            "sppnw20.txt": [0],
+            "sppnw22.txt": [0],
+            "sppnw24.txt": [0],
+            "sppnw26.txt": [0],
+            "sppnw28.txt": [0],
+            "sppnw30.txt": [0],
+            "sppnw32.txt": [0],
+            "sppnw34.txt": [0],
+            "sppnw36.txt": [0],
+            "sppnw38.txt": [0],
+            "sppnw40.txt": [0],
+            "sppnw42.txt": [0],
+            "sppus02.txt": [0],
+            "sppus04.txt": [0],
+        }
 
         return dev
-
-
-
-
-
-
-

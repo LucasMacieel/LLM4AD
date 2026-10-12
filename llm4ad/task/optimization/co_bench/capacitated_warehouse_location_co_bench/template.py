@@ -34,15 +34,17 @@ def solve(m: int, n: int, warehouses: list, customers: list) -> dict:
     }
 '''
 
-task_description = ("The Capacitated Warehouse Location Problem with Splittable Demand aims to determine which "
-                    "warehouses to open and how to allocate portions of customer demands among these warehouses in "
-                    "order to minimize total costs. Given a set of potential warehouse locations, each with a fixed "
-                    "opening cost and capacity limit, and a set of customers with individual demands and associated "
-                    "per-unit assignment costs to each warehouse, the objective is to decide which warehouses to open "
-                    "and how to distribute each customer's demand among these open warehouses. The allocation must "
-                    "satisfy the constraint that the sum of portions assigned to each customer equals their total "
-                    "demand, and that the total demand allocated to any warehouse does not exceed its capacity. The "
-                    "optimization seeks to minimize the sum of fixed warehouse opening costs and the total per-unit "
-                    "assignment costs. However, if any solution violates these constraints (i.e., a customer’s demand "
-                    "is not fully satisfied or a warehouse’s capacity is exceeded), then no score is provided."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The Capacitated Warehouse Location Problem with Splittable Demand aims to determine which "
+    "warehouses to open and how to allocate portions of customer demands among these warehouses in "
+    "order to minimize total costs. Given a set of potential warehouse locations, each with a fixed "
+    "opening cost and capacity limit, and a set of customers with individual demands and associated "
+    "per-unit assignment costs to each warehouse, the objective is to decide which warehouses to open "
+    "and how to distribute each customer's demand among these open warehouses. The allocation must "
+    "satisfy the constraint that the sum of portions assigned to each customer equals their total "
+    "demand, and that the total demand allocated to any warehouse does not exceed its capacity. The "
+    "optimization seeks to minimize the sum of fixed warehouse opening costs and the total per-unit "
+    "assignment costs. However, if any solution violates these constraints (i.e., a customer’s demand "
+    "is not fully satisfied or a warehouse’s capacity is exceeded), then no score is provided."
+    "Help me design a novel algorithm to solve this problem."
+)

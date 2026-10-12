@@ -22,29 +22,29 @@ from __future__ import annotations
 import multiprocessing
 import sys
 import time
+import traceback
 from abc import ABC, abstractmethod
 from typing import Any, Literal
 
-from .code import TextFunctionProgramConverter, Program
+from .code import Program, TextFunctionProgramConverter
 from .modify_code import ModifyCode
-import traceback
 
 
 class Evaluation(ABC):
     def __init__(
-            self,
-            template_program: str | Program,
-            task_description: str = '',
-            use_numba_accelerate: bool = False,
-            use_protected_div: bool = False,
-            protected_div_delta: float = 1e-5,
-            random_seed: int | None = None,
-            timeout_seconds: int | float = None,
-            *,
-            exec_code: bool = True,
-            safe_evaluate: bool = True,
-            daemon_eval_process: bool = False,
-            fork_proc: Literal['auto'] | bool = 'auto'
+        self,
+        template_program: str | Program,
+        task_description: str = "",
+        use_numba_accelerate: bool = False,
+        use_protected_div: bool = False,
+        protected_div_delta: float = 1e-5,
+        random_seed: int | None = None,
+        timeout_seconds: int | float = None,
+        *,
+        exec_code: bool = True,
+        safe_evaluate: bool = True,
+        daemon_eval_process: bool = False,
+        fork_proc: Literal["auto"] | bool = "auto",
     ):
         """Evaluation interface for executing generated code.
         Args:
@@ -103,7 +103,9 @@ class Evaluation(ABC):
         self.fork_proc = fork_proc
 
     @abstractmethod
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         r"""Evaluate a given function. You can use compiled function (function_callable),
         as well as the original function strings for evaluation.
         Args:
@@ -130,27 +132,26 @@ class Evaluation(ABC):
         As shown above, the 'import numba', 'numba.jit()' decorator,
         and '_protected_dev' will be added by this function.
         """
-        raise NotImplementedError('Must provide a evaluator for a function.')
+        raise NotImplementedError("Must provide a evaluator for a function.")
 
 
 class SecureEvaluator:
-    def __init__(self,
-                 evaluator: Evaluation,
-                 debug_mode=False,
-                 **kwargs):
+    def __init__(self, evaluator: Evaluation, debug_mode=False, **kwargs):
         self._evaluator = evaluator
         self._debug_mode = debug_mode
         fork_proc = self._evaluator.fork_proc
 
         if self._evaluator.safe_evaluate:
-            if fork_proc == 'auto':
+            if fork_proc == "auto":
                 # force MacOS and Linux use 'fork' to generate new process
-                if sys.platform.startswith('darwin') or sys.platform.startswith('linux'):
-                    multiprocessing.set_start_method('fork', force=True)
+                if sys.platform.startswith("darwin") or sys.platform.startswith(
+                    "linux"
+                ):
+                    multiprocessing.set_start_method("fork", force=True)
             elif fork_proc is True:
-                multiprocessing.set_start_method('fork', force=True)
+                multiprocessing.set_start_method("fork", force=True)
             elif fork_proc is False:
-                multiprocessing.set_start_method('spawn', force=True)
+                multiprocessing.set_start_method("spawn", force=True)
 
     def _modify_program_code(self, program_str: str) -> str:
         function_name = TextFunctionProgramConverter.text_to_function(program_str).name
@@ -160,7 +161,9 @@ class SecureEvaluator:
             )
         if self._evaluator.use_protected_div:
             program_str = ModifyCode.replace_div_with_protected_div(
-                program_str, self._evaluator.protected_div_delta, self._evaluator.use_numba_accelerate
+                program_str,
+                self._evaluator.protected_div_delta,
+                self._evaluator.use_numba_accelerate,
             )
         if self._evaluator.random_seed is not None:
             program_str = ModifyCode.add_numpy_random_seed_to_func(
@@ -172,11 +175,13 @@ class SecureEvaluator:
         try:
             program_str = str(program)
             # record function name BEFORE modifying program code
-            function_name = TextFunctionProgramConverter.text_to_function(program_str).name
+            function_name = TextFunctionProgramConverter.text_to_function(
+                program_str
+            ).name
 
             program_str = self._modify_program_code(program_str)
             if self._debug_mode:
-                print(f'DEBUG: evaluated program:\n{program_str}\n')
+                print(f"DEBUG: evaluated program:\n{program_str}\n")
 
             # safe evaluate
             if self._evaluator.safe_evaluate:
@@ -185,14 +190,16 @@ class SecureEvaluator:
                     target=self._evaluate_in_safe_process,
                     args=(program_str, function_name, result_queue),
                     kwargs=kwargs,
-                    daemon=self._evaluator.daemon_eval_process
+                    daemon=self._evaluator.daemon_eval_process,
                 )
                 process.start()
 
                 if self._evaluator.timeout_seconds is not None:
                     try:
                         # get the result in timeout seconds
-                        result = result_queue.get(timeout=self._evaluator.timeout_seconds)
+                        result = result_queue.get(
+                            timeout=self._evaluator.timeout_seconds
+                        )
                         # after getting the result, terminate/kill the process
                         process.terminate()
                         process.join(timeout=5)
@@ -202,7 +209,9 @@ class SecureEvaluator:
                     except:
                         # timeout
                         if self._debug_mode:
-                            print(f'DEBUG: the evaluation time exceeds {self._evaluator.timeout_seconds}s.')
+                            print(
+                                f"DEBUG: the evaluation time exceeds {self._evaluator.timeout_seconds}s."
+                            )
                         process.terminate()
                         process.join(timeout=5)
                         if process.is_alive():
@@ -230,7 +239,13 @@ class SecureEvaluator:
         result = self.evaluate_program(program, **kwargs)
         return result, time.time() - evaluate_start
 
-    def _evaluate_in_safe_process(self, program_str: str, function_name, result_queue: multiprocessing.Queue, **kwargs):
+    def _evaluate_in_safe_process(
+        self,
+        program_str: str,
+        function_name,
+        result_queue: multiprocessing.Queue,
+        **kwargs,
+    ):
         try:
             if self._evaluator.exec_code:
                 # compile the program, and maps the global func/var/class name to its address
@@ -243,7 +258,9 @@ class SecureEvaluator:
                 program_callable = None
 
             # get evaluate result
-            res = self._evaluator.evaluate_program(program_str, program_callable, **kwargs)
+            res = self._evaluator.evaluate_program(
+                program_str, program_callable, **kwargs
+            )
             result_queue.put(res)
         except Exception as e:
             if self._debug_mode:
@@ -264,7 +281,9 @@ class SecureEvaluator:
                 program_callable = None
 
             # get evaluate result
-            res = self._evaluator.evaluate_program(program_str, program_callable, **kwargs)
+            res = self._evaluator.evaluate_program(
+                program_str, program_callable, **kwargs
+            )
             return res
         except Exception as e:
             if self._debug_mode:

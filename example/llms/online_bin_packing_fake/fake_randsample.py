@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import pickle
 import random
-from typing import Any
 import sys
+from typing import Any
 
-sys.path.append('../../')  # This is for finding all the modules
+sys.path.append("../../")  # This is for finding all the modules
 
-from llm4ad.task.optimization.online_bin_packing import OBPEvaluation
 from llm4ad.base import LLM
 from llm4ad.method.randsample import RandSample
+from llm4ad.task.optimization.online_bin_packing import OBPEvaluation
 from llm4ad.tools.profiler import ProfilerBase
 
 
@@ -20,19 +20,19 @@ class FakeLLM(LLM):
 
     def __init__(self):
         super().__init__()
-        with open('./_data/rand_function.pkl', 'rb') as f:
+        with open("./_data/rand_function.pkl", "rb") as f:
             self._functions = pickle.load(f)
 
     def draw_sample(self, prompt: str | Any, *args, **kwargs) -> str:
         return random.choice(self._functions)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     llm = FakeLLM()
     task = OBPEvaluation()
     rand_sample = RandSample(
         llm=llm,
-        profiler=ProfilerBase(log_dir='logs/randomsample', log_style='simple'),
+        profiler=ProfilerBase(log_dir="logs/randomsample", log_style="simple"),
         evaluation=task,
         max_sample_nums=10,
         num_samplers=1,

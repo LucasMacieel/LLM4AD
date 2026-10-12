@@ -22,33 +22,34 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.graph_colouring_co_bench.template import template_program, task_description
 
-__all__ = ['GCEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.graph_colouring_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["GCEvaluationCB"]
 
 
 class GCEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
@@ -56,10 +57,12 @@ class GCEvaluationCB(Evaluation):
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +74,10 @@ class GCEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['n'], j['edges'], j['adjacency'])
-                    fitness = self.eval_func(n=j['n'], adjacency=j['adjacency'], result=result)
+                    result = eva(j["n"], j["edges"], j["adjacency"])
+                    fitness = self.eval_func(
+                        n=j["n"], adjacency=j["adjacency"], result=result
+                    )
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -97,7 +102,7 @@ class GCEvaluationCB(Evaluation):
                 - 'adjacency': dict mapping vertex (1..n) to a set of adjacent vertices.
         """
 
-        all_lines = [line.strip() for line in input_string.split('\n')]
+        all_lines = [line.strip() for line in input_string.split("\n")]
 
         cases = []
         current_case_lines = []
@@ -121,7 +126,13 @@ class GCEvaluationCB(Evaluation):
         # If no header line was found in the entire file, treat entire file as one case.
         if not found_header and not cases:
             # Filter out blank lines and comments from all_lines and treat as single case.
-            cases = [[line for line in all_lines if line.strip() and not line.strip().startswith("c")]]
+            cases = [
+                [
+                    line
+                    for line in all_lines
+                    if line.strip() and not line.strip().startswith("c")
+                ]
+            ]
 
         case_data_list = []
         # Process each case's lines.
@@ -160,17 +171,13 @@ class GCEvaluationCB(Evaluation):
 
             # Build adjacency list.
             adjacency = {i: set() for i in range(1, n + 1)}
-            for (u, v) in edges:
+            for u, v in edges:
                 if u in adjacency:
                     adjacency[u].add(v)
                 if v in adjacency:
                     adjacency[v].add(u)
 
-            case_data_list.append({
-                'n': n,
-                'edges': edges,
-                'adjacency': adjacency
-            })
+            case_data_list.append({"n": n, "edges": edges, "adjacency": adjacency})
 
         return case_data_list
 
@@ -193,14 +200,18 @@ class GCEvaluationCB(Evaluation):
         """
         # Extract expected case data.
         try:
-            n = kwargs['n']
-            adjacency = kwargs['adjacency']
+            n = kwargs["n"]
+            adjacency = kwargs["adjacency"]
         except KeyError as e:
             raise KeyError("Missing required case data key: " + str(e))
 
         # The solution should include an assignment for every vertex (1..n).
-        result = kwargs.get('result', {})
-        solution = {k: v for k, v in result.items() if isinstance(k, int) or (isinstance(k, str) and k.isdigit())}
+        result = kwargs.get("result", {})
+        solution = {
+            k: v
+            for k, v in result.items()
+            if isinstance(k, int) or (isinstance(k, str) and k.isdigit())
+        }
         # Normalize keys to integers.
         normalized_solution = {}
         for key, value in solution.items():
@@ -212,12 +223,18 @@ class GCEvaluationCB(Evaluation):
 
         expected_vertices = set(range(1, n + 1))
         if set(normalized_solution.keys()) != expected_vertices:
-            raise ValueError("The solution must assign a color to every vertex from 1 to " + str(n))
+            raise ValueError(
+                "The solution must assign a color to every vertex from 1 to " + str(n)
+            )
 
         # Check that every color is a positive integer.
         for v, color in normalized_solution.items():
             if not (isinstance(color, int) and color >= 1):
-                raise ValueError("Invalid color for vertex {}: {}. Colors must be positive integers.".format(v, color))
+                raise ValueError(
+                    "Invalid color for vertex {}: {}. Colors must be positive integers.".format(
+                        v, color
+                    )
+                )
 
         # Count conflicts: for each edge, if both endpoints have the same color, count a conflict.
         conflict_count = 0
@@ -228,7 +245,9 @@ class GCEvaluationCB(Evaluation):
                         conflict_count += 1
 
         if conflict_count > 0:
-            raise ValueError("Invalid coloring: {} conflict(s) found.".format(conflict_count))
+            raise ValueError(
+                "Invalid coloring: {} conflict(s) found.".format(conflict_count)
+            )
 
         num_colors = len(set(normalized_solution.values()))
         score = num_colors
@@ -266,7 +285,7 @@ class GCEvaluationCB(Evaluation):
             "gcol6.txt": [15],
             "gcol7.txt": [15],
             "gcol8.txt": [15],
-            "gcol9.txt": [15]
+            "gcol9.txt": [15],
         }
 
         normed = {}
@@ -286,14 +305,22 @@ class GCEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'gcol1.txt': [0], 'gcol11.txt': [0], 'gcol13.txt': [0],
-               'gcol15.txt': [0], 'gcol17.txt': [0], 'gcol19.txt': [0],
-               'gcol21.txt': [0], 'gcol23.txt': [0], 'gcol25.txt': [0],
-               'gcol27.txt': [0], 'gcol29.txt': [0], 'gcol3.txt': [0],
-               'gcol5.txt': [0], 'gcol7.txt': [0], 'gcol9.txt': [0]}
+        dev = {
+            "gcol1.txt": [0],
+            "gcol11.txt": [0],
+            "gcol13.txt": [0],
+            "gcol15.txt": [0],
+            "gcol17.txt": [0],
+            "gcol19.txt": [0],
+            "gcol21.txt": [0],
+            "gcol23.txt": [0],
+            "gcol25.txt": [0],
+            "gcol27.txt": [0],
+            "gcol29.txt": [0],
+            "gcol3.txt": [0],
+            "gcol5.txt": [0],
+            "gcol7.txt": [0],
+            "gcol9.txt": [0],
+        }
 
         return dev
-
-
-
-

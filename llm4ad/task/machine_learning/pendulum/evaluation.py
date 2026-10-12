@@ -35,13 +35,18 @@
 from __future__ import annotations
 
 from typing import Any
+
 import gymnasium as gym
 import numpy as np
 
 from llm4ad.base import Evaluation
-from llm4ad.task.machine_learning.pendulum.template import template_program, task_description
+from llm4ad.task.machine_learning.pendulum.template import (
+    task_description,
+    template_program,
+)
 
-__all__ = ['PendulumEvaluation']
+__all__ = ["PendulumEvaluation"]
+
 
 def evaluate(env: gym.Env, action_select: callable) -> float | None:
     try:
@@ -65,10 +70,12 @@ def evaluate_single(env: gym.Env, action_select: callable) -> float:
     total_reward = 0
 
     for i in range(env._max_episode_steps + 1):  # protect upper limits
-        action = action_select(observation[0],  # cos(theta)
-                               observation[1],  # sin(theta)
-                               observation[2],  # angular velocity
-                               action)  # last action (torque)
+        action = action_select(
+            observation[0],  # cos(theta)
+            observation[1],  # sin(theta)
+            observation[2],  # angular velocity
+            action,
+        )  # last action (torque)
         observation, reward, done, truncated, info = env.step([action])
         total_reward += reward
 
@@ -79,7 +86,9 @@ def evaluate_single(env: gym.Env, action_select: callable) -> float:
             angular_velocity = observation[2]
 
             # Calculate error terms
-            angle_error = abs(1 - cos_theta)  # Distance from vertical (cos(theta) = 1 when upright)
+            angle_error = abs(
+                1 - cos_theta
+            )  # Distance from vertical (cos(theta) = 1 when upright)
             stability_error = abs(sin_theta)  # Penalize instability
 
             # Total error
@@ -98,23 +107,23 @@ class PendulumEvaluation(Evaluation):
 
     def __init__(self, max_steps=500, timeout_seconds=20, **kwargs):
         """
-            Args:
-                - 'max_steps' (int): Maximum number of steps allowed per episode in the Pendulum-v1 environment (default is 200).
-                - '**kwargs' (dict): Additional keyword arguments passed to the parent class initializer.
+        Args:
+            - 'max_steps' (int): Maximum number of steps allowed per episode in the Pendulum-v1 environment (default is 200).
+            - '**kwargs' (dict): Additional keyword arguments passed to the parent class initializer.
 
-            Attributes:
-                - 'env' (gym.Env): The Pendulum-v1 environment with a modified maximum episode length.
+        Attributes:
+            - 'env' (gym.Env): The Pendulum-v1 environment with a modified maximum episode length.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         self.env = None
-        self.env = gym.make('Pendulum-v1')
+        self.env = gym.make("Pendulum-v1")
         self.env._max_episode_steps = max_steps
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any | None:

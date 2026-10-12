@@ -1,23 +1,24 @@
-import numpy as np
-import pandas as pd
-import time
-import gymnasium as gym
-import tqdm
-import csv
 import os
 import pickle
-from queue import Queue
+
+import gymnasium as gym
+import numpy as np
+import tqdm
 
 
 class QLearning:
-    def __init__(self, actions_space, learning_rate=0.01, reward_decay=0.99, e_greedy=0.6):
+    def __init__(
+        self, actions_space, learning_rate=0.01, reward_decay=0.99, e_greedy=0.6
+    ):
         self.actions = actions_space  # 动作空间
         self.lr = learning_rate  # 学习率
         self.gamma = reward_decay  # 回报衰减率
         self.epsilon = e_greedy  # 探索/利用 贪婪系数
         self.num_pos = 20  # 位置分为num_pos份
         self.num_vel = 14  # 速度分为num_vel份
-        self.q_table = np.random.uniform(low=-1, high=1, size=(self.num_pos * self.num_vel, self.actions.n))  # Q值表
+        self.q_table = np.random.uniform(
+            low=-1, high=1, size=(self.num_pos * self.num_vel, self.actions.n)
+        )  # Q值表
         self.pos_bins = self.toBins(-1.2, 0.6, self.num_pos)
         self.vel_bins = self.toBins(-0.07, 0.07, self.num_vel)
 
@@ -39,8 +40,10 @@ class QLearning:
 
     def digitize_state(self, observation):
         cart_pos, cart_v = observation
-        digitized = [self.digit(cart_pos, self.pos_bins),
-                     self.digit(cart_v, self.vel_bins)]
+        digitized = [
+            self.digit(cart_pos, self.pos_bins),
+            self.digit(cart_v, self.vel_bins),
+        ]
         return (digitized[1] - 1) * self.num_pos + digitized[0] - 1
 
     def learn(self, state, action, r, next_state):
@@ -51,7 +54,7 @@ class QLearning:
 
 
 def train():
-    env = gym.make('MountainCar-v0')  # 指定渲染模式为 human
+    env = gym.make("MountainCar-v0")  # 指定渲染模式为 human
     # print(env.action_space)
     agent = QLearning(env.action_space)
 
@@ -81,16 +84,16 @@ def train():
     env.close()
 
     # 保存模型
-    with open(os.getcwd() + '/carmountain.model', 'wb') as f:
+    with open(os.getcwd() + "/carmountain.model", "wb") as f:
         pickle.dump(agent, f)
 
 
 def taste():
     # env = gym.make('MountainCar-v0', render_mode='human')  # 指定渲染模式为 human
-    env = gym.make('MountainCar-v0')  # 指定渲染模式为 human
+    env = gym.make("MountainCar-v0")  # 指定渲染模式为 human
 
     print(env.action_space)
-    with open(os.getcwd() + '/carmountain.model', 'rb') as f:
+    with open(os.getcwd() + "/carmountain.model", "rb") as f:
         agent = pickle.load(f)
     agent.actions = env.action_space  # 初始化
     agent.epsilon = 1
@@ -142,7 +145,7 @@ def choose_action(pos: float, v: float, last_action: int) -> int:
 
 
 def run_test():
-    env = gym.make('MountainCar-v0', render_mode='human')
+    env = gym.make("MountainCar-v0", render_mode="human")
     observation, _ = env.reset()  # 状态包括以下因素
     action = 1
 
@@ -162,6 +165,6 @@ def run_test():
     env.close()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # train()  # 训练
     run_test()  # 训练结束后测试

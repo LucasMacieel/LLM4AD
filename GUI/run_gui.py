@@ -20,7 +20,7 @@
 import os
 from pathlib import Path
 
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 
@@ -28,26 +28,28 @@ import sys
 
 sys.path.insert(0, str(ROOT_DIR))
 
-from datetime import datetime
-import pytz
+import json
+import multiprocessing
+import subprocess
 import tkinter as tk
+import webbrowser
+from datetime import datetime
 from tkinter import ttk as tkttk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib import font_manager
+
 import matplotlib.pyplot as plt
 import numpy as np
-import json
-import webbrowser
-import multiprocessing
-from llm4ad.gui import main_gui
+import pytz
 import ttkbootstrap as ttk
-import subprocess
 import yaml
+from matplotlib import font_manager
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+
+from llm4ad.gui import main_gui
 
 PLOT_FONT_FAMILY = (
-    'Times New Roman'
-    if any(font.name == 'Times New Roman' for font in font_manager.fontManager.ttflist)
-    else 'DejaVu Serif'
+    "Times New Roman"
+    if any(font.name == "Times New Roman" for font in font_manager.fontManager.ttflist)
+    else "DejaVu Serif"
 )
 
 ##########################################################
@@ -70,12 +72,17 @@ problem_para_value_type_list = []
 problem_para_value_name_list = []
 
 llm_para_entry_list = []
-llm_para_value_name_list = ['name', 'host', 'key', 'model']
-llm_para_default_value_list = ['HttpsApi', '', '', '']
-llm_para_placeholder_list = ['HttpsApi', 'api.bltcy.top', 'sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', 'gpt-4o-mini']
+llm_para_value_name_list = ["name", "host", "key", "model"]
+llm_para_default_value_list = ["HttpsApi", "", "", ""]
+llm_para_placeholder_list = [
+    "HttpsApi",
+    "api.bltcy.top",
+    "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "gpt-4o-mini",
+]
 
-default_method = 'eoh'
-default_problem = ['admissible_set', 'car_mountain', 'bactgrow']
+default_method = "eoh"
+default_problem = ["admissible_set", "car_mountain", "bactgrow"]
 
 log_dir = None
 figures = None
@@ -84,13 +91,21 @@ canvas = None
 
 ##########################################################
 
+
 class PlaceholderEntry(ttk.Entry):
-    def __init__(self, master=None, placeholder="Enter text here", color='grey', bootstyle='default', width=30):
+    def __init__(
+        self,
+        master=None,
+        placeholder="Enter text here",
+        color="grey",
+        bootstyle="default",
+        width=30,
+    ):
         super().__init__(master, bootstyle=bootstyle, width=width)
 
         self.placeholder = placeholder
         self.placeholder_color = color
-        self.default_fg_color = self['foreground']
+        self.default_fg_color = self["foreground"]
 
         self.bind("<FocusIn>", self._clear_placeholder)
         self.bind("<FocusOut>", self._add_placeholder)
@@ -103,14 +118,17 @@ class PlaceholderEntry(ttk.Entry):
         self.have_content = True
         if not self.get() or force:
             self.configure(foreground=self.placeholder_color)
-            self.delete(0, 'end')
+            self.delete(0, "end")
             self.insert(0, self.placeholder)
             self.have_content = False
 
     def _clear_placeholder(self, event=None):
-        if self.get() == self.placeholder and str(self['foreground']) == str(self.placeholder_color):
+        if self.get() == self.placeholder and str(self["foreground"]) == str(
+            self.placeholder_color
+        ):
             self.delete(0, "end")
             self.configure(foreground=self.default_fg_color)
+
 
 class ScrollableFrame(ttk.Frame):
     """Frame with scrollbar"""
@@ -119,13 +137,14 @@ class ScrollableFrame(ttk.Frame):
         super().__init__(container, *args, **kwargs)
 
         # Create Canvas and Scrollbar
-        canvas = tk.Canvas(self, bg='white', highlightthickness=0, height=max_height)
-        scrollbar = ttk.Scrollbar(self, orient="vertical", command=canvas.yview, bootstyle="round")
+        canvas = tk.Canvas(self, bg="white", highlightthickness=0, height=max_height)
+        scrollbar = ttk.Scrollbar(
+            self, orient="vertical", command=canvas.yview, bootstyle="round"
+        )
         self.scrollable_frame = ttk.Frame(canvas)
 
         self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+            "<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
         )
 
         canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
@@ -135,11 +154,14 @@ class ScrollableFrame(ttk.Frame):
         scrollbar.pack(side="right", fill="y")
 
         # Bind mouse wheel
-        self.scrollable_frame.bind('<Enter>', lambda e: self._bind_mousewheel(canvas))
-        self.scrollable_frame.bind('<Leave>', lambda e: self._unbind_mousewheel(canvas))
+        self.scrollable_frame.bind("<Enter>", lambda e: self._bind_mousewheel(canvas))
+        self.scrollable_frame.bind("<Leave>", lambda e: self._unbind_mousewheel(canvas))
 
     def _bind_mousewheel(self, canvas):
-        canvas.bind_all("<MouseWheel>", lambda e: canvas.yview_scroll(int(-1 * (e.delta / 120)), "units"))
+        canvas.bind_all(
+            "<MouseWheel>",
+            lambda e: canvas.yview_scroll(int(-1 * (e.delta / 120)), "units"),
+        )
 
     def _unbind_mousewheel(self, canvas):
         canvas.unbind_all("<MouseWheel>")
@@ -147,10 +169,13 @@ class ScrollableFrame(ttk.Frame):
 
 ##########################################################
 
+
 def draw_horizontal_line(parent_frame, width=150):
-    line_canvas = tk.Canvas(parent_frame, width=width, height=25, bg='white', highlightthickness=0)
+    line_canvas = tk.Canvas(
+        parent_frame, width=width, height=25, bg="white", highlightthickness=0
+    )
     line_canvas.pack(pady=0)
-    line_canvas.create_line(0, 15, width, 15, fill='black')
+    line_canvas.create_line(0, 15, width, 15, fill="black")
 
 
 def open_doc_link():
@@ -166,20 +191,23 @@ def open_website_link():
 
 
 def open_qq_link():
-    webbrowser.open_new("https://qm.qq.com/cgi-bin/qm/qr?k=4Imf8bn_d99-QXVcEJfOwCSD1KkcpbcD&jump_from=webapi&authKey=JtSmFh8BNKM97+TGnUdDgvT69TDTbo4UaLwgrZJSlsYqmVoCca/a5awU+TXt4zYB")
+    webbrowser.open_new(
+        "https://qm.qq.com/cgi-bin/qm/qr?k=4Imf8bn_d99-QXVcEJfOwCSD1KkcpbcD&jump_from=webapi&authKey=JtSmFh8BNKM97+TGnUdDgvT69TDTbo4UaLwgrZJSlsYqmVoCca/a5awU+TXt4zYB"
+    )
 
 
 def open_folder():
     global log_dir
 
     if os.path.exists(log_dir):
-        if os.name == 'nt':  # Windows
+        if os.name == "nt":  # Windows
             os.startfile(log_dir)
-        elif os.name == 'posix':  # Unix-like
-            subprocess.run(['open', log_dir])
+        elif os.name == "posix":  # Unix-like
+            subprocess.run(["open", log_dir])
 
 
 ##########################################################
+
 
 def on_algo_select(event):
     global selected_algo
@@ -201,25 +229,31 @@ def show_algorithm_parameters(algo_name):
     global method_para_value_name_list
     clear_algo_param_frame()
 
-    algo_param_frame['text'] = f"{algo_name}"
+    algo_param_frame["text"] = f"{algo_name}"
 
     required_parameters, value_type, default_value = get_required_parameters(
-        path=ROOT_DIR / 'llm4ad' / 'method' / algo_name / 'paras.yaml')
+        path=ROOT_DIR / "llm4ad" / "method" / algo_name / "paras.yaml"
+    )
     method_para_value_name_list = required_parameters
     method_para_value_type_list = value_type
 
     # Create scrollable area within algo_param_frame
     scroll_frame = ScrollableFrame(algo_param_frame, max_height=200)
-    scroll_frame.pack(fill='both', expand=True)
+    scroll_frame.pack(fill="both", expand=True)
     inner_frame = scroll_frame.scrollable_frame
 
     for i in range(len(required_parameters)):
         if i != 0:
-            ttk.Label(inner_frame, text=required_parameters[i] + ':').grid(row=i - 1, column=0, sticky='w', padx=5,
-                                                                           pady=5)
-        method_para_entry_list.append(ttk.Entry(inner_frame, width=10, bootstyle="primary"))
+            ttk.Label(inner_frame, text=required_parameters[i] + ":").grid(
+                row=i - 1, column=0, sticky="w", padx=5, pady=5
+            )
+        method_para_entry_list.append(
+            ttk.Entry(inner_frame, width=10, bootstyle="primary")
+        )
         if i != 0:
-            method_para_entry_list[-1].grid(row=i - 1, column=1, sticky='ew', padx=5, pady=5)
+            method_para_entry_list[-1].grid(
+                row=i - 1, column=1, sticky="ew", padx=5, pady=5
+            )
         if default_value[i] is not None:
             method_para_entry_list[-1].insert(0, str(default_value[i]))
 
@@ -233,22 +267,45 @@ def show_problem_parameters(problem_name):
     global problem_para_value_name_list
     clear_problem_param_frame()
 
-    problem_param_frame['text'] = f"{problem_name}"
+    problem_param_frame["text"] = f"{problem_name}"
 
-    if problem_name[-8:] == 'co_bench':
-        yaml_file_path = ROOT_DIR / 'llm4ad' / 'task' / objectives_var.get() / 'co_bench' / problem_name / 'paras.yaml'
+    if problem_name[-8:] == "co_bench":
+        yaml_file_path = (
+            ROOT_DIR
+            / "llm4ad"
+            / "task"
+            / objectives_var.get()
+            / "co_bench"
+            / problem_name
+            / "paras.yaml"
+        )
     else:
-        yaml_file_path = ROOT_DIR / 'llm4ad' / 'task' / objectives_var.get() / problem_name / 'paras.yaml'
+        yaml_file_path = (
+            ROOT_DIR
+            / "llm4ad"
+            / "task"
+            / objectives_var.get()
+            / problem_name
+            / "paras.yaml"
+        )
 
-    required_parameters, value_type, default_value = get_required_parameters(path=yaml_file_path)
+    required_parameters, value_type, default_value = get_required_parameters(
+        path=yaml_file_path
+    )
     problem_para_value_type_list = value_type
     problem_para_value_name_list = required_parameters
     for i in range(len(required_parameters)):
         if i != 0:
-            ttk.Label(problem_param_frame, text=required_parameters[i] + ':').grid(row=i - 1, column=0, sticky='nsew', padx=5, pady=10)
-        problem_para_entry_list.append(ttk.Entry(problem_param_frame, width=10, bootstyle="warning"))
+            ttk.Label(problem_param_frame, text=required_parameters[i] + ":").grid(
+                row=i - 1, column=0, sticky="nsew", padx=5, pady=10
+            )
+        problem_para_entry_list.append(
+            ttk.Entry(problem_param_frame, width=10, bootstyle="warning")
+        )
         if i != 0:
-            problem_para_entry_list[-1].grid(row=i - 1, column=1, sticky='nsew', padx=5, pady=10)
+            problem_para_entry_list[-1].grid(
+                row=i - 1, column=1, sticky="nsew", padx=5, pady=10
+            )
             problem_param_frame.grid_rowconfigure(i - 1, weight=1)
         if default_value[i] is not None:
             problem_para_entry_list[-1].insert(0, str(default_value[i]))
@@ -265,7 +322,7 @@ def get_required_parameters(path):
     value_type = []
     default_value = []
 
-    with open(path, 'r', encoding='utf-8') as file:
+    with open(path, "r", encoding="utf-8") as file:
         data = yaml.safe_load(file)  # 使用 safe_load 读取 YAML 文件
 
     for key, value in data.items():
@@ -310,21 +367,32 @@ def problem_type_select(event=None):
     if problem_listbox is not None:
         problem_listbox.destroy()
 
-    problem_listbox = tk.Listbox(problem_frame, height=6, bg='white', selectbackground='lightgray', font=('Comic Sans MS', 12))
-    problem_listbox.pack(anchor=tk.NW, fill='both', expand=True, padx=5, pady=5)
-    path = ROOT_DIR / 'llm4ad' / 'task' / objectives_var.get()
+    problem_listbox = tk.Listbox(
+        problem_frame,
+        height=6,
+        bg="white",
+        selectbackground="lightgray",
+        font=("Comic Sans MS", 12),
+    )
+    problem_listbox.pack(anchor=tk.NW, fill="both", expand=True, padx=5, pady=5)
+    path = ROOT_DIR / "llm4ad" / "task" / objectives_var.get()
     for name in os.listdir(path):
         full_path = path / name
-        if full_path.is_dir() and name != '__pycache__' and name != '_data' and name != 'co_bench':
+        if (
+            full_path.is_dir()
+            and name != "__pycache__"
+            and name != "_data"
+            and name != "co_bench"
+        ):
             problem_listbox.insert(tk.END, name)
         if name in default_problem:
             default_problem_index = problem_listbox.size() - 1
 
-    if objectives_var.get() == 'optimization':
-        path = ROOT_DIR / 'llm4ad' / 'task' / objectives_var.get() / 'co_bench'  # todo
+    if objectives_var.get() == "optimization":
+        path = ROOT_DIR / "llm4ad" / "task" / objectives_var.get() / "co_bench"  # todo
         for name in os.listdir(path):
             full_path = path / name
-            if full_path.is_dir() and name != '__pycache__' and name != '_data':
+            if full_path.is_dir() and name != "__pycache__" and name != "_data":
                 problem_listbox.insert(tk.END, name)
 
     problem_listbox.bind("<<ListboxSelect>>", on_problem_select)
@@ -333,32 +401,36 @@ def problem_type_select(event=None):
 
 ###############################################################################
 
+
 def on_plot_button_click():
     global process1
     global log_dir
     global results_after_id
 
     try:
-
         if not check_para():
             tk.messagebox.showinfo("Warning", "Please configure the settings of LLM.")
             return
 
         llm_para, method_para, problem_para, profiler_para = return_para()
 
-        init_fig(method_para['max_sample_nums'])
+        init_fig(method_para["max_sample_nums"])
 
-        process1 = multiprocessing.Process(target=main_gui, args=(llm_para, method_para, problem_para, profiler_para))
+        process1 = multiprocessing.Process(
+            target=main_gui, args=(llm_para, method_para, problem_para, profiler_para)
+        )
         process1.start()
 
-        results_after_id = root.after(500, get_results, profiler_para['log_dir'], method_para['max_sample_nums'])
+        results_after_id = root.after(
+            500, get_results, profiler_para["log_dir"], method_para["max_sample_nums"]
+        )
 
-        log_dir = profiler_para['log_dir']
+        log_dir = profiler_para["log_dir"]
 
-        plot_button['state'] = tk.DISABLED
-        stop_button['state'] = tk.NORMAL
+        plot_button["state"] = tk.DISABLED
+        stop_button["state"] = tk.NORMAL
         # doc_button['state'] = tk.DISABLED
-        doc_button['state'] = tk.NORMAL
+        doc_button["state"] = tk.NORMAL
 
     except ValueError:
         print("Invalid input. Please enter a number.")
@@ -384,27 +456,36 @@ def return_para():
 
     for i in range(len(method_para_entry_list)):
         method_para[method_para_value_name_list[i]] = method_para_entry_list[i].get()
-        if method_para_value_type_list[i] == '<class \'int\'>':
-            method_para[method_para_value_name_list[i]] = int(method_para_entry_list[i].get())
+        if method_para_value_type_list[i] == "<class 'int'>":
+            method_para[method_para_value_name_list[i]] = int(
+                method_para_entry_list[i].get()
+            )
 
-    method_para['num_samplers'] = method_para['num_evaluators']
+    method_para["num_samplers"] = method_para["num_evaluators"]
 
     for i in range(len(problem_para_entry_list)):
         problem_para[problem_para_value_name_list[i]] = problem_para_entry_list[i].get()
-        if problem_para_value_type_list[i] == '<class \'int\'>':
-            problem_para[problem_para_value_name_list[i]] = int(problem_para_entry_list[i].get())
+        if problem_para_value_type_list[i] == "<class 'int'>":
+            problem_para[problem_para_value_name_list[i]] = int(
+                problem_para_entry_list[i].get()
+            )
 
     ####################
 
-    profiler_para['name'] = 'ProfilerBase'
+    profiler_para["name"] = "ProfilerBase"
 
-    temp_str1 = problem_para['name']
-    temp_str2 = method_para['name']
+    temp_str1 = problem_para["name"]
+    temp_str2 = method_para["name"]
     process_start_time = datetime.now(pytz.timezone("Asia/Shanghai"))
-    b = os.path.abspath('..')
-    log_folder = b + '/GUI/logs/' + process_start_time.strftime(
-        "%Y%m%d_%H%M%S") + f'_{temp_str1}' + f'_{temp_str2}'
-    profiler_para['log_dir'] = log_folder
+    b = os.path.abspath("..")
+    log_folder = (
+        b
+        + "/GUI/logs/"
+        + process_start_time.strftime("%Y%m%d_%H%M%S")
+        + f"_{temp_str1}"
+        + f"_{temp_str2}"
+    )
+    profiler_para["log_dir"] = log_folder
 
     ####################
 
@@ -415,7 +496,9 @@ def return_para():
 
     return llm_para, method_para, problem_para, profiler_para
 
+
 ######################################################################
+
 
 def init_fig(max_sample_nums):
     global ax
@@ -425,34 +508,31 @@ def init_fig(max_sample_nums):
     stop_run()
     value_label.config(text=f"{0} samples")
 
-    right_frame_label['text'] = 'Running'
+    right_frame_label["text"] = "Running"
 
-    code_display.config(state='normal')
-    code_display.delete(1.0, 'end')
-    code_display.config(state='disabled')
+    code_display.config(state="normal")
+    code_display.delete(1.0, "end")
+    code_display.config(state="disabled")
 
-    objective_label['text'] = 'Current best objective:'
+    objective_label["text"] = "Current best objective:"
 
     for widget in plot_frame.winfo_children():
         widget.destroy()
 
-    font = {
-        'family': PLOT_FONT_FAMILY,
-        'size': 16
-    }
+    font = {"family": PLOT_FONT_FAMILY, "size": 16}
 
     figures = plt.Figure(figsize=(4, 3), dpi=100)
     ax = figures.add_subplot(111)
 
-    figures.patch.set_facecolor('white')
-    ax.set_facecolor('white')
+    figures.patch.set_facecolor("white")
+    ax.set_facecolor("white")
 
     ax.set_title(f"Result Display", fontdict=font)
 
     ax.plot()
     ax.set_xlim(left=0)
-    ax.set_xlabel('Samples', fontdict=font)
-    ax.set_ylabel('Current best objective', fontdict=font)
+    ax.set_xlabel("Samples", fontdict=font)
+    ax.set_ylabel("Current best objective", fontdict=font)
     ax.grid(True)
 
     if max_sample_nums <= 20:
@@ -465,15 +545,16 @@ def init_fig(max_sample_nums):
     canvas = FigureCanvasTkAgg(figures, master=plot_frame)
     canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
 
+
 def get_results(log_dir, max_sample_nums, index=1):
     global results_after_id
     results_after_id = None
 
     if except_error():
         tk.messagebox.showerror("Error", "Except Error. Please check the terminal.")
-        right_frame_label['text'] = 'Error'
+        right_frame_label["text"] = "Error"
     elif check_finish(log_dir, index, max_sample_nums):
-        right_frame_label['text'] = 'Finished'
+        right_frame_label["text"] = "Finished"
     else:
         new = check(index, log_dir)
         if new:
@@ -485,13 +566,14 @@ def get_results(log_dir, max_sample_nums, index=1):
             display_plot(index - 1)
             if alg is not None:
                 display_alg(alg)
-            objective_label['text'] = f'Current best objective:{best_obj}'
+            objective_label["text"] = f"Current best objective:{best_obj}"
             index += 1
         results_after_id = root.after(500, get_results, log_dir, max_sample_nums, index)
         return
 
-    plot_button['state'] = tk.NORMAL
-    stop_button['state'] = tk.DISABLED
+    plot_button["state"] = tk.NORMAL
+    stop_button["state"] = tk.DISABLED
+
 
 def plot_fig(index, log_dir, max_sample_nums):
     global figures
@@ -499,10 +581,13 @@ def plot_fig(index, log_dir, max_sample_nums):
     ###############################################################
     generation = []
     best_value_list = []
-    all_best_value = float('-inf')
+    all_best_value = float("-inf")
     best_alg = None
 
-    file_name_list = [log_dir + f'/samples/samples_{i * 200 + 1}~{(i + 1) * 200}.json' for i in range(((index - 1) // 200) + 1)]
+    file_name_list = [
+        log_dir + f"/samples/samples_{i * 200 + 1}~{(i + 1) * 200}.json"
+        for i in range(((index - 1) // 200) + 1)
+    ]
 
     data = []
     for file_name in file_name_list:
@@ -510,10 +595,10 @@ def plot_fig(index, log_dir, max_sample_nums):
             data.append(json.load(file))
 
     for i in range(index):
-        individual = data[i // 200][((i+1) % 200)-1]
-        code = individual['function']
+        individual = data[i // 200][((i + 1) % 200) - 1]
+        code = individual["function"]
         # alg = individual['algorithm']
-        obj = individual['score']
+        obj = individual["score"]
         if obj is None:
             generation.append(i + 1)
             best_value_list.append(all_best_value)
@@ -530,31 +615,28 @@ def plot_fig(index, log_dir, max_sample_nums):
     ###############################################################
     # plot
 
-    font = {
-        'family': PLOT_FONT_FAMILY,
-        'size': 16
-    }
+    font = {"family": PLOT_FONT_FAMILY, "size": 16}
 
-    figures.patch.set_facecolor('white')
-    ax.set_facecolor('white')
+    figures.patch.set_facecolor("white")
+    ax.set_facecolor("white")
 
     ax.set_title(f"Result display", fontdict=font)
 
     # ax.plot(generation, best_value_list, color='tab:blue', marker='o')
-    ax.plot(generation, best_value_list, color='tab:blue')
-    ax.set_xlabel('Samples', fontdict=font)
-    ax.set_ylabel('Current best objective', fontdict=font)
+    ax.plot(generation, best_value_list, color="tab:blue")
+    ax.set_xlabel("Samples", fontdict=font)
+    ax.set_ylabel("Current best objective", fontdict=font)
     ax.grid(True)
 
     if len(generation) <= max_sample_nums:
-        if max_sample_nums<=20:
+        if max_sample_nums <= 20:
             ax.set_xticks(np.arange(0, max_sample_nums + 1, 1))
         else:
             ticks = np.linspace(0, max_sample_nums, 11)
             ticks = np.round(ticks).astype(int)
             ax.set_xticks(ticks)
     else:
-        if len(generation)<=20:
+        if len(generation) <= 20:
             ax.set_xticks(np.arange(0, len(generation) + 1, 1))
         else:
             ticks = np.linspace(0, len(generation), 11)
@@ -565,19 +647,22 @@ def plot_fig(index, log_dir, max_sample_nums):
 
     return figures, best_alg, all_best_value
 
+
 def display_plot(index):
     global canvas
     canvas.draw()
 
     value_label.config(text=f"{index + 1} samples")
 
+
 ######################################################################
 
+
 def display_alg(alg):
-    code_display.config(state='normal')
-    code_display.delete(1.0, 'end')
+    code_display.config(state="normal")
+    code_display.delete(1.0, "end")
     code_display.insert(tk.END, alg)
-    code_display.config(state='disabled')
+    code_display.config(state="disabled")
 
 
 def except_error():
@@ -592,18 +677,22 @@ def except_error():
 
 
 def check_finish(log_dir, index, max_sample_nums):
-    return os.path.exists(log_dir + '/population/' + 'end.json') or index > max_sample_nums
+    return (
+        os.path.exists(log_dir + "/population/" + "end.json") or index > max_sample_nums
+    )
 
 
 def check(index, log_dir):
     temp_var1 = (index - 1) // 200
     return_value = False
-    file_name = log_dir + f'/samples/samples_{temp_var1*200+1}~{(temp_var1+1)*200}.json'
+    file_name = (
+        log_dir + f"/samples/samples_{temp_var1 * 200 + 1}~{(temp_var1 + 1) * 200}.json"
+    )
 
     if os.path.exists(file_name):
         with open(file_name) as file:
             data = json.load(file)
-        if len(data) >= ((index-1) % 200)+1:
+        if len(data) >= ((index - 1) % 200) + 1:
             return_value = True
     return return_value
 
@@ -613,7 +702,7 @@ def stop_run():
     global results_after_id
 
     # doc_button['state'] = tk.DISABLED
-    stop_button['state'] = tk.DISABLED
+    stop_button["state"] = tk.DISABLED
     if results_after_id is not None:
         root.after_cancel(results_after_id)
         results_after_id = None
@@ -623,7 +712,7 @@ def stop_run():
                 process1.terminate()
             except:
                 pass
-    plot_button['state'] = tk.NORMAL
+    plot_button["state"] = tk.NORMAL
 
 
 def exit_run():
@@ -634,47 +723,56 @@ def exit_run():
 
 ###############################################################################
 
-if __name__ == '__main__':
-
+if __name__ == "__main__":
     root = ttk.Window()
     root.title("LLM4AD")
     root.geometry("1500x900")
     root.protocol("WM_DELETE_WINDOW", exit_run)
 
-    image_dir = Path(__file__).resolve().parent / 'image'
-    if sys.platform == 'win32':
-        root.iconbitmap(str(image_dir / 'icon.ico'))
+    image_dir = Path(__file__).resolve().parent / "image"
+    if sys.platform == "win32":
+        root.iconbitmap(str(image_dir / "icon.ico"))
 
     style = tkttk.Style()
-    style.configure("TLabelframe.Label", font=('Helvetica', 15))
-    style.configure("TLabel", font=('Comic Sans MS', 12))
-    style.configure("TCombobox", font=('Comic Sans MS', 10))
+    style.configure("TLabelframe.Label", font=("Helvetica", 15))
+    style.configure("TLabel", font=("Comic Sans MS", 12))
+    style.configure("TCombobox", font=("Comic Sans MS", 10))
 
-    photo_doc = tk.PhotoImage(file=str(image_dir / 'document.png'))
+    photo_doc = tk.PhotoImage(file=str(image_dir / "document.png"))
     photoimage_doc = photo_doc.subsample(10, 10)
-    photo_web = tk.PhotoImage(file=str(image_dir / 'website.png'))
+    photo_web = tk.PhotoImage(file=str(image_dir / "website.png"))
     photoimage_web = photo_web.subsample(10, 10)
-    photo_git = tk.PhotoImage(file=str(image_dir / 'github.png'))
+    photo_git = tk.PhotoImage(file=str(image_dir / "github.png"))
     photoimage_git = photo_git.subsample(10, 10)
-    photo_qq = tk.PhotoImage(file=str(image_dir / 'qq.png'))
+    photo_qq = tk.PhotoImage(file=str(image_dir / "qq.png"))
     photoimage_qq = photo_qq.subsample(10, 10)
 
     top_frame = ttk.Frame(root, height=30, bootstyle="info")
-    top_frame.pack(fill='x')
-    link_doc = ttk.Button(top_frame, image=photoimage_doc, command=open_doc_link, bootstyle="info")
+    top_frame.pack(fill="x")
+    link_doc = ttk.Button(
+        top_frame, image=photoimage_doc, command=open_doc_link, bootstyle="info"
+    )
     link_doc.pack(side=tk.LEFT, padx=3)
-    link_git = ttk.Button(top_frame, image=photoimage_git, command=open_github_link, bootstyle="info")
+    link_git = ttk.Button(
+        top_frame, image=photoimage_git, command=open_github_link, bootstyle="info"
+    )
     link_git.pack(side=tk.LEFT, padx=3)
-    link_web = ttk.Button(top_frame, image=photoimage_web, command=open_website_link, bootstyle="info")
+    link_web = ttk.Button(
+        top_frame, image=photoimage_web, command=open_website_link, bootstyle="info"
+    )
     link_web.pack(side=tk.LEFT, padx=3)
-    link_qq = ttk.Button(top_frame, image=photoimage_qq, command=open_qq_link, bootstyle="info")
+    link_qq = ttk.Button(
+        top_frame, image=photoimage_qq, command=open_qq_link, bootstyle="info"
+    )
     link_qq.pack(side=tk.LEFT, padx=3)
 
     bottom_frame = ttk.Frame(root)
-    bottom_frame.pack(fill='both', expand=True)
+    bottom_frame.pack(fill="both", expand=True)
     left_frame = ttk.Frame(bottom_frame)
     left_frame.grid(row=0, column=0, sticky="nsew")
-    ttk.Separator(bottom_frame, orient='vertical', bootstyle="secondary").grid(row=0, column=1, sticky="ns")
+    ttk.Separator(bottom_frame, orient="vertical", bootstyle="secondary").grid(
+        row=0, column=1, sticky="ns"
+    )
     right_frame = ttk.Frame(bottom_frame)
     right_frame.grid(row=0, column=2, sticky="nsew")
 
@@ -689,10 +787,21 @@ if __name__ == '__main__':
     llm_frame.pack(anchor=tk.NW, fill=tk.X, padx=5, pady=5)
 
     for i in range(len(llm_para_value_name_list)):
-        llm_para_entry_list.append(PlaceholderEntry(llm_frame, width=70, bootstyle="dark", placeholder=llm_para_placeholder_list[i]))
+        llm_para_entry_list.append(
+            PlaceholderEntry(
+                llm_frame,
+                width=70,
+                bootstyle="dark",
+                placeholder=llm_para_placeholder_list[i],
+            )
+        )
         if i != 0:
-            ttk.Label(llm_frame, text=llm_para_value_name_list[i] + ':').grid(row=i - 1, column=0, sticky='ns', padx=5, pady=5)
-            llm_para_entry_list[-1].grid(row=i - 1, column=1, sticky='ns', padx=5, pady=5)
+            ttk.Label(llm_frame, text=llm_para_value_name_list[i] + ":").grid(
+                row=i - 1, column=0, sticky="ns", padx=5, pady=5
+            )
+            llm_para_entry_list[-1].grid(
+                row=i - 1, column=1, sticky="ns", padx=5, pady=5
+            )
             llm_frame.grid_rowconfigure(i - 1, weight=1)
 
     llm_frame.grid_columnconfigure(0, weight=1)
@@ -701,12 +810,16 @@ if __name__ == '__main__':
     with_default_parameter = False
     if with_default_parameter:
         for i in range(len(llm_para_value_name_list)):
-            llm_para_entry_list[i].delete(0, 'end')
-            llm_para_entry_list[i].configure(foreground=llm_para_entry_list[i].default_fg_color)
+            llm_para_entry_list[i].delete(0, "end")
+            llm_para_entry_list[i].configure(
+                foreground=llm_para_entry_list[i].default_fg_color
+            )
             llm_para_entry_list[i].insert(0, str(llm_para_default_value_list[i]))
     else:
-        llm_para_entry_list[0].delete(0, 'end')
-        llm_para_entry_list[0].configure(foreground=llm_para_entry_list[0].default_fg_color)
+        llm_para_entry_list[0].delete(0, "end")
+        llm_para_entry_list[0].configure(
+            foreground=llm_para_entry_list[0].default_fg_color
+        )
         llm_para_entry_list[0].insert(0, str(llm_para_default_value_list[0]))
 
     ############
@@ -724,20 +837,30 @@ if __name__ == '__main__':
     container_frame_2 = tk.Frame(left_frame)
     container_frame_2.pack(fill=tk.BOTH, expand=True)
 
-    algo_param_frame = ttk.Labelframe(container_frame_2, text="eoh", bootstyle="primary")
+    algo_param_frame = ttk.Labelframe(
+        container_frame_2, text="eoh", bootstyle="primary"
+    )
     algo_param_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5, pady=5)
-    problem_param_frame = ttk.Labelframe(container_frame_2, text="admissible_set", bootstyle="warning")
+    problem_param_frame = ttk.Labelframe(
+        container_frame_2, text="admissible_set", bootstyle="warning"
+    )
     problem_param_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=5, pady=5)
 
     ############
 
-    algo_listbox = tk.Listbox(algo_frame, height=6, bg='white', selectbackground='lightgray', font=('Comic Sans MS', 12))
-    algo_listbox.pack(anchor=tk.NW, fill='both', expand=True, padx=5, pady=5)
+    algo_listbox = tk.Listbox(
+        algo_frame,
+        height=6,
+        bg="white",
+        selectbackground="lightgray",
+        font=("Comic Sans MS", 12),
+    )
+    algo_listbox.pack(anchor=tk.NW, fill="both", expand=True, padx=5, pady=5)
     default_method_index = None
-    path = ROOT_DIR / 'llm4ad' / 'method'
+    path = ROOT_DIR / "llm4ad" / "method"
     for name in os.listdir(path):
         full_path = path / name
-        if full_path.is_dir() and name != '__pycache__':
+        if full_path.is_dir() and name != "__pycache__":
             algo_listbox.insert(tk.END, name)
         if name == default_method:
             default_method_index = algo_listbox.size() - 1
@@ -748,39 +871,67 @@ if __name__ == '__main__':
     ############
 
     objectives_var = tk.StringVar(value="optimization")
-    objectives_frame = tk.Frame(problem_frame, bg='white')
+    objectives_frame = tk.Frame(problem_frame, bg="white")
     objectives_frame.pack(anchor=tk.NW, pady=5)
     radiobutton_list = []
-    for _, dict_name, _ in os.walk(ROOT_DIR / 'llm4ad' / 'task'):
+    for _, dict_name, _ in os.walk(ROOT_DIR / "llm4ad" / "task"):
         for name in dict_name:
-            if name != '__pycache__' and name != '_data':
+            if name != "__pycache__" and name != "_data":
                 radiobutton_list.append(name)
         break
-    combobox = ttk.Combobox(objectives_frame, state='readonly', values=radiobutton_list, textvariable=objectives_var, bootstyle="warning", font=('Comic Sans MS', 12))
-    combobox.bind('<<ComboboxSelected>>', problem_type_select)
+    combobox = ttk.Combobox(
+        objectives_frame,
+        state="readonly",
+        values=radiobutton_list,
+        textvariable=objectives_var,
+        bootstyle="warning",
+        font=("Comic Sans MS", 12),
+    )
+    combobox.bind("<<ComboboxSelected>>", problem_type_select)
     combobox.pack(anchor=tk.NW, padx=5, pady=5)
     problem_type_select()
 
     ############
 
-    plot_button = ttk.Button(left_frame, text="Run", command=on_plot_button_click, width=12, bootstyle="primary-outline", state=tk.NORMAL)
-    plot_button.pack(side='left', pady=20, expand=True)
+    plot_button = ttk.Button(
+        left_frame,
+        text="Run",
+        command=on_plot_button_click,
+        width=12,
+        bootstyle="primary-outline",
+        state=tk.NORMAL,
+    )
+    plot_button.pack(side="left", pady=20, expand=True)
 
-    stop_button = ttk.Button(left_frame, text="Stop", command=stop_run, width=12, bootstyle="warning-outline", state=tk.DISABLED)
-    stop_button.pack(side='left', pady=20, expand=True)
+    stop_button = ttk.Button(
+        left_frame,
+        text="Stop",
+        command=stop_run,
+        width=12,
+        bootstyle="warning-outline",
+        state=tk.DISABLED,
+    )
+    stop_button.pack(side="left", pady=20, expand=True)
 
-    doc_button = ttk.Button(left_frame, text="Log files", command=open_folder, width=12, bootstyle="dark-outline", state=tk.DISABLED)
-    doc_button.pack(side='left', pady=20, expand=True)
+    doc_button = ttk.Button(
+        left_frame,
+        text="Log files",
+        command=open_folder,
+        width=12,
+        bootstyle="dark-outline",
+        state=tk.DISABLED,
+    )
+    doc_button.pack(side="left", pady=20, expand=True)
 
     ##########################################################
 
     state_frame = ttk.Frame(right_frame)
-    state_frame.grid(row=0, column=0, sticky='ns', padx=5, pady=5)
+    state_frame.grid(row=0, column=0, sticky="ns", padx=5, pady=5)
     code_frame = ttk.Frame(right_frame)
-    code_frame.grid(row=0, column=1, sticky='ns', padx=5, pady=5)
+    code_frame.grid(row=0, column=1, sticky="ns", padx=5, pady=5)
 
-    plot_frame = tk.Frame(right_frame, bg='white')
-    plot_frame.grid(row=1, column=0, columnspan=2, sticky='nsew', padx=5, pady=5)
+    plot_frame = tk.Frame(right_frame, bg="white")
+    plot_frame.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=5, pady=5)
 
     right_frame.grid_rowconfigure(0, weight=400)
     right_frame.grid_rowconfigure(1, weight=2500)
@@ -789,24 +940,26 @@ if __name__ == '__main__':
 
     ###
 
-    right_frame_label = ttk.Label(state_frame, text="Wait", anchor='w')
+    right_frame_label = ttk.Label(state_frame, text="Wait", anchor="w")
     right_frame_label.pack(fill=tk.X, padx=10, pady=10)
 
-    value_label = ttk.Label(state_frame, text="0 samples", anchor='w')
+    value_label = ttk.Label(state_frame, text="0 samples", anchor="w")
     value_label.pack(fill=tk.X, padx=10, pady=10)
 
-    objective_label = ttk.Label(state_frame, text="Current best objective:", anchor='w')
+    objective_label = ttk.Label(state_frame, text="Current best objective:", anchor="w")
     objective_label.pack(fill=tk.X, padx=10, pady=10)
 
     ###
 
-    code_display_frame = ttk.Labelframe(code_frame, text="Current best algorithm:", bootstyle="dark")
+    code_display_frame = ttk.Labelframe(
+        code_frame, text="Current best algorithm:", bootstyle="dark"
+    )
     code_display_frame.pack(anchor=tk.NW, fill=tk.X, padx=5, pady=5)
     code_display = tk.Text(code_display_frame, height=14, width=55)
-    code_display.pack(fill='both', expand=True, padx=5, pady=5)
+    code_display.pack(fill="both", expand=True, padx=5, pady=5)
     sorting_algorithm = ""
     code_display.insert(tk.END, sorting_algorithm)
-    code_display.config(state='disabled')
+    code_display.config(state="disabled")
 
     ##########################################################
 

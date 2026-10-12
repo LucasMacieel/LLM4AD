@@ -27,41 +27,44 @@ from __future__ import annotations
 
 import concurrent.futures
 import copy
-import random
 import time
 import traceback
 from threading import Thread
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 import numpy as np
 
+from ...base import LLM, Evaluation, SecureEvaluator
+from ...tools.profiler import ProfilerBase
 from .elite_set import EliteSet
-from .func_ruin import LHNSFunctionRuin, LHNSFunction, LHNSProgram, LHNSTextFunctionProgramConverter
-from .profiler import LHNSProfiler
+from .func_ruin import (
+    LHNSFunction,
+    LHNSFunctionRuin,
+    LHNSProgram,
+    LHNSTextFunctionProgramConverter,
+)
 from .prompt import LHNSPrompt
 from .sampler import LHNSSampler
-from ...base import (
-    Evaluation, LLM, SecureEvaluator
-)
-from ...tools.profiler import ProfilerBase
 
 
 class LHNS:
-    def __init__(self,
-                 llm: LLM,
-                 evaluation: Evaluation,
-                 profiler: ProfilerBase = None,
-                 max_sample_nums: Optional[int] = 100,
-                 cooling_rate: float = 0.1,
-                 elite_set_size: int = 5,
-                 method: str = 'vns',  # vns, ils, ts
-                 num_samplers: int = 1,
-                 num_evaluators: int = 1,
-                 *,
-                 resume_mode: bool = False,
-                 debug_mode: bool = False,
-                 multi_thread_or_process_eval: Literal['thread', 'process'] = 'thread',
-                 **kwargs):
+    def __init__(
+        self,
+        llm: LLM,
+        evaluation: Evaluation,
+        profiler: ProfilerBase = None,
+        max_sample_nums: Optional[int] = 100,
+        cooling_rate: float = 0.1,
+        elite_set_size: int = 5,
+        method: str = "vns",  # vns, ils, ts
+        num_samplers: int = 1,
+        num_evaluators: int = 1,
+        *,
+        resume_mode: bool = False,
+        debug_mode: bool = False,
+        multi_thread_or_process_eval: Literal["thread", "process"] = "thread",
+        **kwargs,
+    ):
         """Evolutionary of Heuristics.
         Args:
             llm             : an instance of 'llm4ad.base.LLM', which provides the way to query LLM.
@@ -99,11 +102,25 @@ class LHNS:
         self._multi_thread_or_process_eval = multi_thread_or_process_eval
 
         # function to be evolved
-        self._current_function: LHNSFunction = LHNSTextFunctionProgramConverter.text_to_function(self._template_program_str)
-        self._best_function: LHNSFunction = LHNSTextFunctionProgramConverter.text_to_function(self._template_program_str)
-        self._function_to_evolve: LHNSFunction = LHNSTextFunctionProgramConverter.text_to_function(self._template_program_str)
+        self._current_function: LHNSFunction = (
+            LHNSTextFunctionProgramConverter.text_to_function(
+                self._template_program_str
+            )
+        )
+        self._best_function: LHNSFunction = (
+            LHNSTextFunctionProgramConverter.text_to_function(
+                self._template_program_str
+            )
+        )
+        self._function_to_evolve: LHNSFunction = (
+            LHNSTextFunctionProgramConverter.text_to_function(
+                self._template_program_str
+            )
+        )
         self._function_to_evolve_name: str = self._function_to_evolve.name
-        self._template_program: LHNSProgram = LHNSTextFunctionProgramConverter.text_to_program(self._template_program_str)
+        self._template_program: LHNSProgram = (
+            LHNSTextFunctionProgramConverter.text_to_program(self._template_program_str)
+        )
 
         # elite set, sampler, and evaluator
         self._method = method
@@ -119,8 +136,8 @@ class LHNS:
         self._initial_sample_nums_max = 20
 
         # multi-thread executor for evaluation
-        assert multi_thread_or_process_eval in ['thread', 'process']
-        if multi_thread_or_process_eval == 'thread':
+        assert multi_thread_or_process_eval in ["thread", "process"]
+        if multi_thread_or_process_eval == "thread":
             self._evaluation_executor = concurrent.futures.ThreadPoolExecutor(
                 max_workers=num_evaluators
             )
@@ -145,13 +162,14 @@ class LHNS:
         if thought is None or func is None:
             return
         # convert to Program instance
-        program = LHNSTextFunctionProgramConverter.function_to_program(func, self._template_program)
+        program = LHNSTextFunctionProgramConverter.function_to_program(
+            func, self._template_program
+        )
         if program is None:
             return
         # evaluate
         score, eval_time = self._evaluation_executor.submit(
-            self._evaluator.evaluate_program_record_time,
-            program
+            self._evaluator.evaluate_program_record_time, program
         ).result()
         # register to profiler
         func.score = score
@@ -164,22 +182,28 @@ class LHNS:
 
         return func
 
-
     def _continue_loop(self) -> bool:
         if self._max_sample_nums is None:
             return True
         else:
             return self._tot_sample_nums < self._max_sample_nums
 
-    def simulated_annealing(self, next_func: LHNSFunction, cooling_rate: float, trans_count: int) -> (bool, int):
-        temperature = cooling_rate * (1 - (self._tot_sample_nums - 1) / self._max_sample_nums)
+    def simulated_annealing(
+        self, next_func: LHNSFunction, cooling_rate: float, trans_count: int
+    ) -> (bool, int):
+        temperature = cooling_rate * (
+            1 - (self._tot_sample_nums - 1) / self._max_sample_nums
+        )
 
         if next_func.score is None or next_func.score == float("-inf"):
             trans_count += 1
             return False, trans_count
 
         if next_func.score < self._current_function.score:
-            temp_value = (-abs(self._current_function.score - next_func.score) / (self._current_function.score + 1E-10)) / temperature
+            temp_value = (
+                -abs(self._current_function.score - next_func.score)
+                / (self._current_function.score + 1e-10)
+            ) / temperature
             if np.random.rand() < np.exp(temp_value):
                 accept = True
             else:
@@ -199,11 +223,18 @@ class LHNS:
 
         while self._continue_loop():
             try:
-                prompt = LHNSPrompt.get_prompt_rr(self._task_description_str, self._current_function, cooling_rate, self._function_to_evolve)
+                prompt = LHNSPrompt.get_prompt_rr(
+                    self._task_description_str,
+                    self._current_function,
+                    cooling_rate,
+                    self._function_to_evolve,
+                )
                 if self._debug_mode:
-                    print(f'VNS RR Prompt: {prompt}')
+                    print(f"VNS RR Prompt: {prompt}")
                 new_func = self._sample_evaluate_register(prompt)
-                accept, trans_count = self.simulated_annealing(new_func, cooling_rate, trans_count)
+                accept, trans_count = self.simulated_annealing(
+                    new_func, cooling_rate, trans_count
+                )
 
                 if accept:
                     self._current_function = new_func
@@ -218,7 +249,6 @@ class LHNS:
 
                 if not self._continue_loop():
                     break
-
 
             except KeyboardInterrupt:
                 break
@@ -242,18 +272,27 @@ class LHNS:
         while self._continue_loop():
             try:
                 if trans_count >= 10:
-                    prompt = LHNSPrompt.get_prompt_m(self._task_description_str, self._best_function,
-                                                     self._function_to_evolve)
+                    prompt = LHNSPrompt.get_prompt_m(
+                        self._task_description_str,
+                        self._best_function,
+                        self._function_to_evolve,
+                    )
                     if self._debug_mode:
-                        print(f'ILS M Prompt: {prompt}')
+                        print(f"ILS M Prompt: {prompt}")
                 else:
-                    prompt = LHNSPrompt.get_prompt_rr(self._task_description_str, self._current_function, cooling_rate,
-                                                      self._function_to_evolve)
+                    prompt = LHNSPrompt.get_prompt_rr(
+                        self._task_description_str,
+                        self._current_function,
+                        cooling_rate,
+                        self._function_to_evolve,
+                    )
                     if self._debug_mode:
-                        print(f'ILS RR Prompt: {prompt}')
+                        print(f"ILS RR Prompt: {prompt}")
 
                 new_func = self._sample_evaluate_register(prompt)
-                accept, trans_count = self.simulated_annealing(new_func, cooling_rate, trans_count)
+                accept, trans_count = self.simulated_annealing(
+                    new_func, cooling_rate, trans_count
+                )
 
                 if accept:
                     self._current_function = new_func
@@ -262,7 +301,6 @@ class LHNS:
 
                 if not self._continue_loop():
                     break
-
 
             except KeyboardInterrupt:
                 break
@@ -287,20 +325,32 @@ class LHNS:
             try:
                 if trans_count >= 10:
                     prev_func = self._elite_set.selection()
-                    prompt = LHNSPrompt.get_prompt_merge(self._task_description_str, self._current_function, prev_func,
-                                                     self._function_to_evolve)
+                    prompt = LHNSPrompt.get_prompt_merge(
+                        self._task_description_str,
+                        self._current_function,
+                        prev_func,
+                        self._function_to_evolve,
+                    )
                     if self._debug_mode:
-                        print(f'TS M Prompt: {prompt}')
+                        print(f"TS M Prompt: {prompt}")
                 else:
-                    prompt = LHNSPrompt.get_prompt_rr(self._task_description_str, self._current_function, cooling_rate,
-                                                      self._function_to_evolve)
+                    prompt = LHNSPrompt.get_prompt_rr(
+                        self._task_description_str,
+                        self._current_function,
+                        cooling_rate,
+                        self._function_to_evolve,
+                    )
                     if self._debug_mode:
-                        print(f'TS RR Prompt: {prompt}')
+                        print(f"TS RR Prompt: {prompt}")
 
                 new_func = self._sample_evaluate_register(prompt)
-                self._current_function.features = LHNSFunctionRuin.find_code_features(self._current_function, new_func)
+                self._current_function.features = LHNSFunctionRuin.find_code_features(
+                    self._current_function, new_func
+                )
                 self._elite_set.update(new_func)
-                accept, trans_count = self.simulated_annealing(new_func, cooling_rate, trans_count)
+                accept, trans_count = self.simulated_annealing(
+                    new_func, cooling_rate, trans_count
+                )
 
                 if accept:
                     self._current_function = new_func
@@ -309,7 +359,6 @@ class LHNS:
 
                 if not self._continue_loop():
                     break
-
 
             except KeyboardInterrupt:
                 break
@@ -327,13 +376,15 @@ class LHNS:
 
     def _iteratively_use_lhns_operator(self):
 
-        assert self._method in ['vns', 'ils', 'ts'], f'None defined method: {self._method}'
+        assert self._method in ["vns", "ils", "ts"], (
+            f"None defined method: {self._method}"
+        )
 
-        if self._method == 'vns':
+        if self._method == "vns":
             self.method_vns()
-        elif self._method == 'ils':
+        elif self._method == "ils":
             self.method_ils()
-        elif self._method == 'ts':
+        elif self._method == "ts":
             self.method_ts()
 
     def _iteratively_init(self):
@@ -342,13 +393,20 @@ class LHNS:
         while True:
             try:
                 # get a new func using i1
-                prompt = LHNSPrompt.get_prompt_i1(self._task_description_str, self._function_to_evolve)
+                prompt = LHNSPrompt.get_prompt_i1(
+                    self._task_description_str, self._function_to_evolve
+                )
                 self._current_function = self._sample_evaluate_register(prompt)
-                if self._current_function.score != float('-inf') or self._current_function.score is not None:
+                if (
+                    self._current_function.score != float("-inf")
+                    or self._current_function.score is not None
+                ):
                     self._best_function = copy.deepcopy(self._current_function)
                     self._elite_set.update(self._current_function)
-                    print(f'Note: During initialization, LHNS gets initial valid algorithm '
-                          f'after {trials} trails.')
+                    print(
+                        f"Note: During initialization, LHNS gets initial valid algorithm "
+                        f"after {trials} trails."
+                    )
                     break
                 trials += 1
                 assert trials < self._initial_sample_nums_max

@@ -22,33 +22,34 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.set_covering_co_bench.template import template_program, task_description
 
-__all__ = ['SCEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.set_covering_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["SCEvaluationCB"]
 
 
 class SCEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
@@ -56,10 +57,12 @@ class SCEvaluationCB(Evaluation):
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +74,14 @@ class SCEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['m'], j['n'], j['costs'], j['row_cover'])
-                    fitness = self.eval_func(m=j['m'], n=j['n'], costs=j['costs'], row_cover=j['row_cover'], selected_columns=result['selected_columns'])
+                    result = eva(j["m"], j["n"], j["costs"], j["row_cover"])
+                    fitness = self.eval_func(
+                        m=j["m"],
+                        n=j["n"],
+                        costs=j["costs"],
+                        row_cover=j["row_cover"],
+                        selected_columns=result["selected_columns"],
+                    )
                     fitness_list.append(fitness)
 
             return -np.mean(fitness_list)
@@ -113,7 +122,7 @@ class SCEvaluationCB(Evaluation):
         content = input_string.strip()
 
         # Split into blocks by one or more blank lines.
-        blocks = re.split(r'\n\s*\n', content)
+        blocks = re.split(r"\n\s*\n", content)
         cases = []
 
         # Check if the very first block is simply a test-case count.
@@ -162,18 +171,26 @@ class SCEvaluationCB(Evaluation):
             for j in range(n):
                 tokens = remaining_lines[j].split()
                 if len(tokens) < 2:
-                    raise ValueError(f"Column {j + 1}: expected at least cost and count.")
+                    raise ValueError(
+                        f"Column {j + 1}: expected at least cost and count."
+                    )
                 try:
                     cost = int(tokens[0])
                     count = int(tokens[1])
                 except Exception as e:
-                    raise ValueError(f"Error parsing cost/count for column {j + 1}: {e}")
+                    raise ValueError(
+                        f"Error parsing cost/count for column {j + 1}: {e}"
+                    )
                 if len(tokens) < 2 + count:
-                    raise ValueError(f"Column {j + 1}: expected {count} row indices, got {len(tokens) - 2}.")
+                    raise ValueError(
+                        f"Column {j + 1}: expected {count} row indices, got {len(tokens) - 2}."
+                    )
                 try:
-                    rows_for_col = list(map(int, tokens[2:2 + count]))
+                    rows_for_col = list(map(int, tokens[2 : 2 + count]))
                 except Exception as e:
-                    raise ValueError(f"Error parsing row indices for column {j + 1}: {e}")
+                    raise ValueError(
+                        f"Error parsing row indices for column {j + 1}: {e}"
+                    )
                 costs.append(cost)
                 col_rows.append(rows_for_col)
             # Build row coverage from column data.
@@ -181,7 +198,9 @@ class SCEvaluationCB(Evaluation):
             for j in range(n):
                 for r in col_rows[j]:
                     if r < 1 or r > m:
-                        raise ValueError(f"Column {j + 1}: row index {r} is out of bounds.")
+                        raise ValueError(
+                            f"Column {j + 1}: row index {r} is out of bounds."
+                        )
                     row_cover[r - 1].append(j + 1)
             return {"m": m, "n": n, "costs": costs, "row_cover": row_cover}
 
@@ -225,14 +244,20 @@ class SCEvaluationCB(Evaluation):
                 try:
                     k = int(row_tokens[token_index])
                 except Exception as e:
-                    raise ValueError(f"Error parsing coverage count for row {i + 1}: {e}")
+                    raise ValueError(
+                        f"Error parsing coverage count for row {i + 1}: {e}"
+                    )
                 token_index += 1
                 if token_index + k > len(row_tokens):
-                    raise ValueError(f"Not enough tokens for row {i + 1}: expected {k} tokens.")
+                    raise ValueError(
+                        f"Not enough tokens for row {i + 1}: expected {k} tokens."
+                    )
                 try:
-                    cols = list(map(int, row_tokens[token_index: token_index + k]))
+                    cols = list(map(int, row_tokens[token_index : token_index + k]))
                 except Exception as e:
-                    raise ValueError(f"Error parsing column indices for row {i + 1}: {e}")
+                    raise ValueError(
+                        f"Error parsing column indices for row {i + 1}: {e}"
+                    )
                 token_index += k
                 row_cover.append(cols)
             return {"m": m, "n": n, "costs": costs, "row_cover": row_cover}
@@ -269,7 +294,9 @@ class SCEvaluationCB(Evaluation):
         # Check that each selected column is within valid bounds.
         for col in selected_columns:
             if col < 1 or col > n:
-                raise ValueError(f"Column {col} is out of bounds (should be between 1 and {n}).")
+                raise ValueError(
+                    f"Column {col} is out of bounds (should be between 1 and {n})."
+                )
 
         computed_cost = sum(costs[col - 1] for col in selected_columns)
 
@@ -280,9 +307,11 @@ class SCEvaluationCB(Evaluation):
                 uncovered_rows.append(i + 1)
 
         if uncovered_rows:
-            raise ValueError("Infeasible solution: rows such as {} are not covered.".format(
-                ', '.join(map(str, uncovered_rows[:10]))
-            ))
+            raise ValueError(
+                "Infeasible solution: rows such as {} are not covered.".format(
+                    ", ".join(map(str, uncovered_rows[:10]))
+                )
+            )
 
         return computed_cost
 
@@ -394,29 +423,45 @@ class SCEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'rail2536.txt': [0], 'rail4284.txt': [0],
-               'rail516.txt': [0], 'rail582.txt': [0],
-               'scp410.txt': [0], 'scp42.txt': [0],
-               'scp44.txt': [0], 'scp48.txt': [0],
-               'scp52.txt': [0], 'scp54.txt': [0],
-               'scp56.txt': [0], 'scp58.txt': [0], 'scp62.txt': [0],
-               'scp64.txt': [0], 'scpa2.txt': [0],
-               'scpa4.txt': [0], 'scpb2.txt': [0], 'scpb4.txt': [0],
-               'scpc2.txt': [0], 'scpc4.txt': [0],
-               'scpclr10.txt': [0], 'scpclr12.txt': [0], 'scpcyc010.txt': [0],
-               'scpcyc06.txt': [0], 'scpcyc08.txt': [0],
-               'scpd2.txt': [0], 'scpd4.txt': [0], 'scpd5.txt': [0],
-               'scpe2.txt': [0], 'scpe4.txt': [0], 'scpnre2.txt': [0],
-               'scpnre4.txt': [0], 'scpnrf2.txt': [0],
-               'scpnrf4.txt': [0], 'scpnrg2.txt': [0],
-               'scpnrg4.txt': [0], 'scpnrh2.txt': [0],
-               'scpnrh4.txt': [0]}
+        dev = {
+            "rail2536.txt": [0],
+            "rail4284.txt": [0],
+            "rail516.txt": [0],
+            "rail582.txt": [0],
+            "scp410.txt": [0],
+            "scp42.txt": [0],
+            "scp44.txt": [0],
+            "scp48.txt": [0],
+            "scp52.txt": [0],
+            "scp54.txt": [0],
+            "scp56.txt": [0],
+            "scp58.txt": [0],
+            "scp62.txt": [0],
+            "scp64.txt": [0],
+            "scpa2.txt": [0],
+            "scpa4.txt": [0],
+            "scpb2.txt": [0],
+            "scpb4.txt": [0],
+            "scpc2.txt": [0],
+            "scpc4.txt": [0],
+            "scpclr10.txt": [0],
+            "scpclr12.txt": [0],
+            "scpcyc010.txt": [0],
+            "scpcyc06.txt": [0],
+            "scpcyc08.txt": [0],
+            "scpd2.txt": [0],
+            "scpd4.txt": [0],
+            "scpd5.txt": [0],
+            "scpe2.txt": [0],
+            "scpe4.txt": [0],
+            "scpnre2.txt": [0],
+            "scpnre4.txt": [0],
+            "scpnrf2.txt": [0],
+            "scpnrf4.txt": [0],
+            "scpnrg2.txt": [0],
+            "scpnrg4.txt": [0],
+            "scpnrh2.txt": [0],
+            "scpnrh4.txt": [0],
+        }
 
         return dev
-
-
-
-
-
-
-

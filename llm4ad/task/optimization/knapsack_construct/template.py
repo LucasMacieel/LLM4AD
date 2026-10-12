@@ -26,8 +26,8 @@ def select_next_item(remaining_capacity: int, remaining_items: List[Tuple[int, i
     return best_item
 '''
 
-task_description = '''
+task_description = """
 Given a set of items with weights and values, the goal is to select a subset of items
 that maximizes the total value while not exceeding the knapsack's capacity.
 Help me design a novel algorithm to select the next item in each step.
-'''
+"""

@@ -3,13 +3,16 @@ from __future__ import annotations
 import math
 from threading import Lock
 from typing import List
+
 import numpy as np
 
 from .func_ruin import LHNSFunction, LHNSProgram
 
 
 class EliteSet:
-    def __init__(self, elite_set_size, elite_set: List[LHNSProgram] | EliteSet | None = None):
+    def __init__(
+        self, elite_set_size, elite_set: List[LHNSProgram] | EliteSet | None = None
+    ):
         if elite_set is None:
             self._elite_set = []
         elif isinstance(elite_set, list):
@@ -37,17 +40,17 @@ class EliteSet:
         elite_set = self._elite_set
         elite_set.append(function)
         elite_set = sorted(elite_set, key=lambda f: f.score, reverse=True)
-        self._elite_set = elite_set[:self._elite_set_size]
+        self._elite_set = elite_set[: self._elite_set_size]
 
     def register_function(self, func: LHNSFunction):
         # if the score is None, we still put it into the population,
         # we set the score to '-inf'
         if func.score is None:
-            func.score = float('-inf')
+            func.score = float("-inf")
         try:
             self._lock.acquire()
             if self.has_duplicate_function(func):
-                func.score = float('-inf')
+                func.score = float("-inf")
             # update: perform survival if reach the pop size
             self.update(func)
         except Exception as e:

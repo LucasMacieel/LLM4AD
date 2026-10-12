@@ -3,24 +3,24 @@
 # This file is part of the LLM4AD project (https://github.com/Optima-CityU/llm4ad).
 #
 # Reference:
-#   - Rui Zhang, Fei Liu, Xi Lin, Zhenkun Wang, Zhichao Lu, and Qingfu Zhang. 
-#       "Understanding the importance of evolutionary search in automated heuristic design with large language models." 
+#   - Rui Zhang, Fei Liu, Xi Lin, Zhenkun Wang, Zhichao Lu, and Qingfu Zhang.
+#       "Understanding the importance of evolutionary search in automated heuristic design with large language models."
 #       In International Conference on Parallel Problem Solving from Nature (PPSN), pp. 185-202. 2024.
-# 
+#
 #
 # ------------------------------- Copyright --------------------------------
 # Copyright (c) 2025 Optima Group.
-# 
-# Permission is granted to use the LLM4AD platform for research purposes. 
-# All publications, software, or other works that utilize this platform 
-# or any part of its codebase must acknowledge the use of "LLM4AD" and 
+#
+# Permission is granted to use the LLM4AD platform for research purposes.
+# All publications, software, or other works that utilize this platform
+# or any part of its codebase must acknowledge the use of "LLM4AD" and
 # cite the following reference:
-# 
-# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang, 
-# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design 
+#
+# Fei Liu, Rui Zhang, Zhuoliang Xie, Rui Sun, Kai Li, Xi Lin, Zhenkun Wang,
+# Zhichao Lu, and Qingfu Zhang, "LLM4AD: A Platform for Algorithm Design
 # with Large Language Model," arXiv preprint arXiv:2412.17287 (2024).
-# 
-# For inquiries regarding commercial use or licensing, please contact 
+#
+# For inquiries regarding commercial use or licensing, please contact
 # http://www.llm4ad.com/contact.html
 # --------------------------------------------------------------------------
 
@@ -33,23 +33,25 @@ import traceback
 from threading import Thread
 from typing import Literal, Optional
 
-from .profiler import HillClimbProfiler
 from ...base import *
+from .profiler import HillClimbProfiler
 
 
 class HillClimb:
-    def __init__(self,
-                 llm: LLM,
-                 evaluation: Evaluation,
-                 profiler: HillClimbProfiler = None,
-                 max_sample_nums: Optional[int] = 20,
-                 num_samplers: int = 4,
-                 num_evaluators: int = 4,
-                 *,
-                 resume_mode: bool = False,
-                 debug_mode: bool = False,
-                 multi_thread_or_process_eval: Literal['thread', 'process'] = 'thread',
-                 **kwargs):
+    def __init__(
+        self,
+        llm: LLM,
+        evaluation: Evaluation,
+        profiler: HillClimbProfiler = None,
+        max_sample_nums: Optional[int] = 20,
+        num_samplers: int = 4,
+        num_evaluators: int = 4,
+        *,
+        resume_mode: bool = False,
+        debug_mode: bool = False,
+        multi_thread_or_process_eval: Literal["thread", "process"] = "thread",
+        **kwargs,
+    ):
         """Hill Climbing Search.
         Args:
             llm             : an instance of 'llm4ad.base.LLM', which provides the way to query LLM.
@@ -76,9 +78,13 @@ class HillClimb:
         self._resume_mode = resume_mode
 
         # function to be evolved
-        self._function_to_evolve: Function = TextFunctionProgramConverter.text_to_function(self._template_program_str)
+        self._function_to_evolve: Function = (
+            TextFunctionProgramConverter.text_to_function(self._template_program_str)
+        )
         self._function_to_evolve_name: str = self._function_to_evolve.name
-        self._template_program: Program = TextFunctionProgramConverter.text_to_program(self._template_program_str)
+        self._template_program: Program = TextFunctionProgramConverter.text_to_program(
+            self._template_program_str
+        )
 
         # sampler and evaluator
         self._sampler = SampleTrimmer(llm)
@@ -88,11 +94,13 @@ class HillClimb:
 
         # statistics
         self._tot_sample_nums = 0
-        self._best_function_found = self._function_to_evolve  # set to the template function at the beginning
+        self._best_function_found = (
+            self._function_to_evolve
+        )  # set to the template function at the beginning
 
         # multi-thread executor for evaluation
-        assert multi_thread_or_process_eval in ['thread', 'process']
-        if multi_thread_or_process_eval == 'thread':
+        assert multi_thread_or_process_eval in ["thread", "process"]
+        if multi_thread_or_process_eval == "thread":
             self._evaluation_executor = concurrent.futures.ThreadPoolExecutor(
                 max_workers=self._num_evaluators
             )
@@ -103,7 +111,8 @@ class HillClimb:
 
         # threads for sampling
         self._sampler_threads = [
-            Thread(target=self._sample_evaluate_register) for _ in range(self._num_samplers)
+            Thread(target=self._sample_evaluate_register)
+            for _ in range(self._num_samplers)
         ]
 
         # pass parameters to profiler
@@ -112,7 +121,9 @@ class HillClimb:
 
     def _init(self):
         # evaluate the template program, make sure the score of which is not 'None'
-        score, eval_time = self._evaluator.evaluate_program_record_time(program=self._template_program)
+        score, eval_time = self._evaluator.evaluate_program_record_time(
+            program=self._template_program
+        )
         if score is None:
             raise RuntimeError('The score of the template function must not be "None".')
         self._best_function_found.score = score
@@ -121,16 +132,22 @@ class HillClimb:
         if self._profiler:
             self._function_to_evolve.score = score
             self._function_to_evolve.evaluate_time = eval_time
-            self._profiler.register_function(self._function_to_evolve, program=str(self._template_program))
+            self._profiler.register_function(
+                self._function_to_evolve, program=str(self._template_program)
+            )
 
     def _get_prompt(self) -> str:
-        template = TextFunctionProgramConverter.function_to_program(self._best_function_found, self._template_program)
-        template.functions[0].name += '_v0'
+        template = TextFunctionProgramConverter.function_to_program(
+            self._best_function_found, self._template_program
+        )
+        template.functions[0].name += "_v0"
         func_to_be_complete = copy.deepcopy(self._function_to_evolve)
-        func_to_be_complete.name = self._function_to_evolve_name + '_v1'
-        func_to_be_complete.docstring = f'    """Improved version of \'{self._function_to_evolve_name}_v0\'."""'
-        func_to_be_complete.body = ''
-        return '\n'.join([str(template), str(func_to_be_complete)])
+        func_to_be_complete.name = self._function_to_evolve_name + "_v1"
+        func_to_be_complete.docstring = (
+            f'    """Improved version of \'{self._function_to_evolve_name}_v0\'."""'
+        )
+        func_to_be_complete.body = ""
+        return "\n".join([str(template), str(func_to_be_complete)])
 
     # def _sample_evaluate_register(self):
     #     while (self._max_sample_nums is None) or (self._tot_sample_nums < self._max_sample_nums):
@@ -192,7 +209,9 @@ class HillClimb:
     #         pass
 
     def _sample_evaluate_register(self):
-        while (self._max_sample_nums is None) or (self._tot_sample_nums < self._max_sample_nums):
+        while (self._max_sample_nums is None) or (
+            self._tot_sample_nums < self._max_sample_nums
+        ):
             try:
                 # do sample
                 prompt_content = self._get_prompt()
@@ -201,7 +220,9 @@ class HillClimb:
                 draw_sample_time = time.time() - draw_sample_start
 
                 # convert samples to program instances
-                program_to_be_eval = SampleTrimmer.sample_to_program(sampled_func, self._template_program)
+                program_to_be_eval = SampleTrimmer.sample_to_program(
+                    sampled_func, self._template_program
+                )
                 if program_to_be_eval is None:
                     continue
 
@@ -214,7 +235,9 @@ class HillClimb:
                 score, eval_time = future.result()
 
                 # convert to Function instance
-                function = TextFunctionProgramConverter.program_to_function(program_to_be_eval)
+                function = TextFunctionProgramConverter.program_to_function(
+                    program_to_be_eval
+                )
 
                 # check if the function has converted to Function instance successfully
                 if function is None:
@@ -229,7 +252,9 @@ class HillClimb:
 
                 # register to profiler
                 if self._profiler:
-                    self._profiler.register_function(function, program=str(program_to_be_eval))
+                    self._profiler.register_function(
+                        function, program=str(program_to_be_eval)
+                    )
 
                 # update
                 self._tot_sample_nums += 1

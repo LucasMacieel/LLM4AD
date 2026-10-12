@@ -21,56 +21,60 @@
 
 from __future__ import annotations
 
-import pathlib
-import pickle
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_pickle
-from llm4ad.task.optimization.co_bench.maximal_independent_set_co_bench.template import template_program, task_description
 
-__all__ = ['MISEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.maximal_independent_set_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_pickle
+
+__all__ = ["MISEvaluationCB"]
 
 
 class MISEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face as pickle files
-        pickle_data = load_subdir_as_pickle("CO-Bench/CO-Bench", "Maximal independent set", 
-                                          include_subdirs=("er_test", "er_large_test"))
-        
+        pickle_data = load_subdir_as_pickle(
+            "CO-Bench/CO-Bench",
+            "Maximal independent set",
+            include_subdirs=("er_test", "er_large_test"),
+        )
+
         # Organize datasets by filename (dict format preserves filenames)
         self._datasets = {}
         for subdir_name, graphs in pickle_data.items():
             for filename, graph in graphs.items():
                 # Use filename as key, store metadata with graph as value
                 dataset_entry = {
-                    'name': filename.replace('.gpickle', ''),
-                    'subdir': subdir_name,
-                    'graph': graph,
-                    'filename': filename
+                    "name": filename.replace(".gpickle", ""),
+                    "subdir": subdir_name,
+                    "graph": graph,
+                    "filename": filename,
                 }
                 self._datasets[filename] = dataset_entry
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -78,12 +82,12 @@ class MISEvaluationCB(Evaluation):
         try:
             for dataset_entry in self._datasets.values():
                 # Each dataset entry already contains the graph and metadata
-                result = eva(dataset_entry['graph'])
+                result = eva(dataset_entry["graph"])
                 fitness = self.eval_func(
-                    name=dataset_entry['name'], 
-                    graph=dataset_entry['graph'], 
-                    mis_nodes=result['mis_nodes'], 
-                    mis_size=len(result['mis_nodes'])
+                    name=dataset_entry["name"],
+                    graph=dataset_entry["graph"],
+                    mis_nodes=result["mis_nodes"],
+                    mis_size=len(result["mis_nodes"]),
                 )
                 fitness_list.append(fitness)
 
@@ -98,10 +102,10 @@ class MISEvaluationCB(Evaluation):
         Load data method for compatibility with comprehensive testing.
         Since MIS task loads pickle files directly in __init__, this method
         returns cases from the dictionary format.
-        
+
         Args:
             input_string: Dataset content (not used, but required for interface)
-            
+
         Returns:
             list: List of dataset entries for compatibility
         """
@@ -125,8 +129,8 @@ class MISEvaluationCB(Evaluation):
             #     - error (str, optional): Error message if any constraint is violated
         """
 
-        graph = kwargs['graph']
-        mis_nodes = kwargs['mis_nodes']
+        graph = kwargs["graph"]
+        mis_nodes = kwargs["mis_nodes"]
 
         # Check if mis_nodes is a list
         if not isinstance(mis_nodes, list):
@@ -149,7 +153,9 @@ class MISEvaluationCB(Evaluation):
         for i in range(len(mis_nodes)):
             for j in range(i + 1, len(mis_nodes)):
                 if graph.has_edge(mis_nodes[i], mis_nodes[j]):
-                    raise Exception(f"Not an independent set: edge exists between {mis_nodes[i]} and {mis_nodes[j]}")
+                    raise Exception(
+                        f"Not an independent set: edge exists between {mis_nodes[i]} and {mis_nodes[j]}"
+                    )
 
         return actual_size
 
@@ -176,11 +182,6 @@ class MISEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'er_large_test': [1, 0, 8, 10, 6],
-               'er_valid': [i for i in range(100)]}
+        dev = {"er_large_test": [1, 0, 8, 10, 6], "er_valid": [i for i in range(100)]}
 
         return dev
-
-
-
-

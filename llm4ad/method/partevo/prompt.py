@@ -26,7 +26,7 @@
 from __future__ import annotations
 
 import copy
-from typing import List, Dict
+from typing import Dict, List
 
 from ...base import *
 
@@ -41,25 +41,31 @@ class PartEvoPrompt:
     @classmethod
     def create_instruct_prompt(cls, prompt: str) -> List[Dict]:
         content = [
-            {'role': 'system', 'message': cls.get_system_prompt()},
-            {'role': 'user', 'message': prompt}
+            {"role": "system", "message": cls.get_system_prompt()},
+            {"role": "user", "message": prompt},
         ]
         return content
 
     @classmethod
     def get_system_prompt(cls) -> str:
-        return ''
+        return ""
 
     @classmethod
-    def get_prompt_batch_init(cls, task_prompt: str, template_function: 'Function',
-                              current_population: List['Function'],
-                              branch_novelty=30):
+    def get_prompt_batch_init(
+        cls,
+        task_prompt: str,
+        template_function: "Function",
+        current_population: List["Function"],
+        branch_novelty=30,
+    ):
         """Generate a structured prompt to initialize a batch of novel algorithms."""
         for indi in current_population:
-            assert hasattr(indi, 'algorithm'), "Each individual must have an 'algorithm' attribute."
+            assert hasattr(indi, "algorithm"), (
+                "Each individual must have an 'algorithm' attribute."
+            )
 
         temp_func = copy.deepcopy(template_function)
-        temp_func.body = '    # TODO: Implement your algorithm logic here\n    pass'
+        temp_func.body = "    # TODO: Implement your algorithm logic here\n    pass"
 
         messages = []
 
@@ -75,10 +81,9 @@ class PartEvoPrompt:
 
         content = []
 
-        content.append({
-            "type": "text",
-            "text": f"### Task Assignment\n{task_prompt}\n"
-        })
+        content.append(
+            {"type": "text", "text": f"### Task Assignment\n{task_prompt}\n"}
+        )
 
         current_size = len(current_population)
         if current_size > 0:
@@ -86,17 +91,20 @@ class PartEvoPrompt:
             content.append({"type": "text", "text": init_cue})
 
             for i, indi in enumerate(current_population):
-                content.append({
-                    "type": "text",
-                    "text": f"- **Algorithm #{i + 1} Concept**: {indi.algorithm}\n"
-                })
+                content.append(
+                    {
+                        "type": "text",
+                        "text": f"- **Algorithm #{i + 1} Concept**: {indi.algorithm}\n",
+                    }
+                )
 
-            init_task = (f"\n### Goal\nDesign a new algorithm whose core mechanism is substantially different "
-                         f"from ALL existing algorithms listed above.\n"
-                         f"The conceptual difference must be at least {branch_novelty}% "
-                         f"in terms of underlying strategy or logic.\n"
-                         f"Simple modifications, recombinations, or parameter tweaks are NOT sufficient."
-                         )
+            init_task = (
+                f"\n### Goal\nDesign a new algorithm whose core mechanism is substantially different "
+                f"from ALL existing algorithms listed above.\n"
+                f"The conceptual difference must be at least {branch_novelty}% "
+                f"in terms of underlying strategy or logic.\n"
+                f"Simple modifications, recombinations, or parameter tweaks are NOT sufficient."
+            )
 
         else:
             init_task = f"### Goal\nBased on your expertise, please create a novel and efficient algorithm to solve this problem."
@@ -125,22 +133,18 @@ Step 2 — Implement the Algorithm
 - Place all necessary `import` statements inside the function body.
 """
 
-        content.append({
-            "type": "text",
-            "text": operator_prompt
-        })
+        content.append({"type": "text", "text": operator_prompt})
 
-        messages.append({
-            'role': 'user',
-            'content': content
-        })
+        messages.append({"role": "user", "content": content})
 
         return messages
 
     @classmethod
-    def get_prompt_reflection(cls, task_prompt: str, func: 'Function', template_function: 'Function'):
+    def get_prompt_reflection(
+        cls, task_prompt: str, func: "Function", template_function: "Function"
+    ):
         """Generate a structured prompt to ask the LLM for targeted suggestions (reflection) on a given algorithm."""
-        assert hasattr(func, 'algorithm'), "func must have an 'algorithm' attribute."
+        assert hasattr(func, "algorithm"), "func must have an 'algorithm' attribute."
 
         messages = []
 
@@ -160,24 +164,28 @@ Step 2 — Implement the Algorithm
         # 2. User Content
         content = []
 
-        content.append({
-            "type": "text",
-            "text": f"### Task Assignment\nAn intelligent agent is currently executing the following design task:\n{task_prompt}\n"
-        })
+        content.append(
+            {
+                "type": "text",
+                "text": f"### Task Assignment\nAn intelligent agent is currently executing the following design task:\n{task_prompt}\n",
+            }
+        )
 
-        content.append({
-            "type": "text",
-            "text": (
-                f"### Current Attempt\n"
-                f"The agent has designed an algorithm with the following concept and implementation:\n"
-                f"- **Concept**: {func.algorithm}\n"
-                f"- **Implementation**:\n"
-                f"```python\n{str(func)}\n```\n"
-            )
-        })
+        content.append(
+            {
+                "type": "text",
+                "text": (
+                    f"### Current Attempt\n"
+                    f"The agent has designed an algorithm with the following concept and implementation:\n"
+                    f"- **Concept**: {func.algorithm}\n"
+                    f"- **Implementation**:\n"
+                    f"```python\n{str(func)}\n```\n"
+                ),
+            }
+        )
 
         temp_func = copy.deepcopy(template_function)
-        temp_func.body = '    # Your algorithm logic must be implemented here\n    pass'
+        temp_func.body = "    # Your algorithm logic must be implemented here\n    pass"
 
         instruction_prompt = f"""### Instructions
 Based on your expert knowledge of the design task, critically evaluate the current algorithm and provide targeted suggestions to guide the agent in improving it.
@@ -197,22 +205,20 @@ Example format:
 ...
 </reflection>
 """
-        content.append({
-            "type": "text",
-            "text": instruction_prompt
-        })
+        content.append({"type": "text", "text": instruction_prompt})
 
-        messages.append({
-            "role": "user",
-            "content": content
-        })
+        messages.append({"role": "user", "content": content})
 
         return messages
 
     @classmethod
-    def get_prompt_summary(cls, task_prompt: str, template_function: 'Function',
-                           summary_context_samples: Dict[str, List['Function']],
-                           current_summary: str = "") -> List[Dict]:
+    def get_prompt_summary(
+        cls,
+        task_prompt: str,
+        template_function: "Function",
+        summary_context_samples: Dict[str, List["Function"]],
+        current_summary: str = "",
+    ) -> List[Dict]:
         messages = []
 
         # 1. System Prompt
@@ -227,40 +233,42 @@ Example format:
         # 2. User Content
         content = []
 
-
-        content.append({
-            "type": "text",
-            "text": f"### Task Assignment\nThe intelligent agents are currently executing the following algorithm design problem:\n{task_prompt}\n"
-        })
+        content.append(
+            {
+                "type": "text",
+                "text": f"### Task Assignment\nThe intelligent agents are currently executing the following algorithm design problem:\n{task_prompt}\n",
+            }
+        )
 
         if current_summary:
-            content.append({
-                "type": "text",
-                "text": f"### Previous Summary\nBased on earlier attempts, we have the following established summary:\n"
-                        f"<previous_summary>\n{current_summary}\n</previous_summary>\n"
-            })
+            content.append(
+                {
+                    "type": "text",
+                    "text": f"### Previous Summary\nBased on earlier attempts, we have the following established summary:\n"
+                    f"<previous_summary>\n{current_summary}\n</previous_summary>\n",
+                }
+            )
 
         context_text = "### Explored Algorithms & Performance\n"
         context_text += "Below is a set of algorithms explored by the agents. You can analyze them based on their scores (a higher score indicates better performance).\n\n"
 
-        elites = summary_context_samples.get('elites', [])
-        hard_negatives = summary_context_samples.get('hard_negatives', [])
+        elites = summary_context_samples.get("elites", [])
+        hard_negatives = summary_context_samples.get("hard_negatives", [])
         all_samples = elites + hard_negatives
 
         try:
-            all_samples.sort(key=lambda x: getattr(x, 'score', 0), reverse=True)
+            all_samples.sort(key=lambda x: getattr(x, "score", 0), reverse=True)
         except Exception:
             pass
 
         for i, func in enumerate(all_samples):
-            concept = getattr(func, 'algorithm', 'No concept description provided.')
-            score = getattr(func, 'score', 'N/A')
-            context_text += f"- **Algorithm #{i + 1}** (Score: {score}):\n  Concept: {concept}\n\n"
+            concept = getattr(func, "algorithm", "No concept description provided.")
+            score = getattr(func, "score", "N/A")
+            context_text += (
+                f"- **Algorithm #{i + 1}** (Score: {score}):\n  Concept: {concept}\n\n"
+            )
 
-        content.append({
-            "type": "text",
-            "text": context_text
-        })
+        content.append({"type": "text", "text": context_text})
 
         instruction_prompt = """### Instructions
 Please review these algorithms, their performance scores, and the previous summary (if provided) to summarize the findings and deduce how to better solve this algorithm design task.
@@ -274,24 +282,24 @@ Example format:
 [A concise yet clear summary.]
 </summary>
 """
-        content.append({
-            "type": "text",
-            "text": instruction_prompt
-        })
+        content.append({"type": "text", "text": instruction_prompt})
 
-        messages.append({
-            "role": "user",
-            "content": content
-        })
+        messages.append({"role": "user", "content": content})
 
         return messages
 
     @classmethod
-    def get_prompt_re(cls, task_prompt: str, parent_func: Function, template_function: Function, reflection: str):
-        assert hasattr(parent_func, 'algorithm')
+    def get_prompt_re(
+        cls,
+        task_prompt: str,
+        parent_func: Function,
+        template_function: Function,
+        reflection: str,
+    ):
+        assert hasattr(parent_func, "algorithm")
         # template
         temp_func = copy.deepcopy(template_function)
-        temp_func.body = '    # TODO: Implement your algorithm logic here\n    pass'
+        temp_func.body = "    # TODO: Implement your algorithm logic here\n    pass"
 
         # Construct prompt content
         messages = []
@@ -308,30 +316,38 @@ Example format:
 
         content = []
 
-        content.append({
-            "type": "text",
-            "text": f"### Task Assignment\nAn intelligent agent is executing the following design task:\n{task_prompt}\n"
-        })
+        content.append(
+            {
+                "type": "text",
+                "text": f"### Task Assignment\nAn intelligent agent is executing the following design task:\n{task_prompt}\n",
+            }
+        )
 
-        content.append({
-            "type": "text",
-            "text": f"### Previous Attempt\nThe agent designed the following algorithm:\n"
-                    f"- **Concept**: {parent_func.algorithm}\n"
-                    f"- **Implementation**:\n```python\n{str(parent_func)}\n```\n"
-        })
+        content.append(
+            {
+                "type": "text",
+                "text": f"### Previous Attempt\nThe agent designed the following algorithm:\n"
+                f"- **Concept**: {parent_func.algorithm}\n"
+                f"- **Implementation**:\n```python\n{str(parent_func)}\n```\n",
+            }
+        )
 
         if reflection:
-            content.append({
-                "type": "text",
-                "text": f"### Expert Reflection\nAn expert reviewed the previous attempt and provided the following feedback:\n"
-                        f"<feedback>{reflection}</feedback>\n"
-                        f"Please consider this feedback to create a new, improved algorithm."
-            })
+            content.append(
+                {
+                    "type": "text",
+                    "text": f"### Expert Reflection\nAn expert reviewed the previous attempt and provided the following feedback:\n"
+                    f"<feedback>{reflection}</feedback>\n"
+                    f"Please consider this feedback to create a new, improved algorithm.",
+                }
+            )
         else:
-            content.append({
-                "type": "text",
-                "text": "### Expert Reflection\nNo specific expert feedback was provided. Please independently identify weaknesses in the previous attempt and create a new, improved algorithm."
-            })
+            content.append(
+                {
+                    "type": "text",
+                    "text": "### Expert Reflection\nNo specific expert feedback was provided. Please independently identify weaknesses in the previous attempt and create a new, improved algorithm.",
+                }
+            )
 
         operator_prompt = f"""### Instructions
 Importantly, you must modify and upgrade the previous algorithmic attempt; superficial refactoring, or simple reweighting is NOT allowed.
@@ -354,30 +370,31 @@ Step 2 — Implement the Algorithm
 - Do NOT modify the function name, arguments, or return type.
 - Place all necessary `import` statements inside the function body.
 """
-        content.append({
-            "type": "text",
-            "text": operator_prompt
-        })
+        content.append({"type": "text", "text": operator_prompt})
 
-        messages.append({
-            "role": "user",
-            "content": content
-        })
+        messages.append({"role": "user", "content": content})
 
         return messages
 
     @classmethod
-    def get_prompt_se(cls, task_prompt: str, parent_func: 'Function', template_function: 'Function',
-                      global_summary: str) -> List[Dict]:
+    def get_prompt_se(
+        cls,
+        task_prompt: str,
+        parent_func: "Function",
+        template_function: "Function",
+        global_summary: str,
+    ) -> List[Dict]:
         """
-                Generate a structured prompt for the Semantic Exploration (SE) operator.
-                Uses a 'God View' global summary to guide the modification of the current algorithm.
-                """
-        assert hasattr(parent_func, 'algorithm'), "parent_func must have an 'algorithm' attribute."
+        Generate a structured prompt for the Semantic Exploration (SE) operator.
+        Uses a 'God View' global summary to guide the modification of the current algorithm.
+        """
+        assert hasattr(parent_func, "algorithm"), (
+            "parent_func must have an 'algorithm' attribute."
+        )
 
         # Prepare the function template
         temp_func = copy.deepcopy(template_function)
-        temp_func.body = '    # TODO: Implement your algorithm logic here\n    pass'
+        temp_func.body = "    # TODO: Implement your algorithm logic here\n    pass"
 
         messages = []
 
@@ -394,32 +411,40 @@ Step 2 — Implement the Algorithm
 
         content = []
 
-        content.append({
-            "type": "text",
-            "text": f"### Task Assignment\nThe algorithm design task is:\n{task_prompt}\n"
-        })
+        content.append(
+            {
+                "type": "text",
+                "text": f"### Task Assignment\nThe algorithm design task is:\n{task_prompt}\n",
+            }
+        )
 
-        content.append({
-            "type": "text",
-            "text": f"### Current Algorithm\n"
-                    f"- **Concept**: {parent_func.algorithm}\n"
-                    f"- **Implementation**:\n```python\n{str(parent_func)}\n```\n"
-        })
+        content.append(
+            {
+                "type": "text",
+                "text": f"### Current Algorithm\n"
+                f"- **Concept**: {parent_func.algorithm}\n"
+                f"- **Implementation**:\n```python\n{str(parent_func)}\n```\n",
+            }
+        )
 
         if global_summary:
-            content.append({
-                "type": "text",
-                "text": f"### Global Insights from Past Attempts\n"
-                        f"Based on the validation of various algorithms across multiple experts, the following insights have been summarized:\n"
-                        f"<global_summary>\n{global_summary}\n</global_summary>\n\n"
-                        f"Please analyze these insights carefully and apply them to modify and improve the current algorithm to create a more promising one."
-            })
+            content.append(
+                {
+                    "type": "text",
+                    "text": f"### Global Insights from Past Attempts\n"
+                    f"Based on the validation of various algorithms across multiple experts, the following insights have been summarized:\n"
+                    f"<global_summary>\n{global_summary}\n</global_summary>\n\n"
+                    f"Please analyze these insights carefully and apply them to modify and improve the current algorithm to create a more promising one.",
+                }
+            )
         else:
-            content.append({
-                "type": "text",
-                "text": "### Global Insights from Past Attempts\n"
-                        "No global summary is currently available. Please independently analyze the current algorithm, identify its potential weaknesses, and modify it to create a superior solution."
-            })
+            content.append(
+                {
+                    "type": "text",
+                    "text": "### Global Insights from Past Attempts\n"
+                    "No global summary is currently available. Please independently analyze the current algorithm, identify its potential weaknesses, and modify it to create a superior solution.",
+                }
+            )
 
         operator_prompt = f"""### Instructions
 Importantly, you must modify and upgrade the Current Algorithm; superficial refactoring, or simple reweighting is NOT allowed.
@@ -442,22 +467,18 @@ Step 2 — Implement the Algorithm
 - Do NOT modify the function name, arguments, or return type.
 - Place all necessary `import` statements inside the function body.
 """
-        content.append({
-            "type": "text",
-            "text": operator_prompt
-        })
+        content.append({"type": "text", "text": operator_prompt})
 
-        messages.append({
-            "role": "user",
-            "content": content
-        })
+        messages.append({"role": "user", "content": content})
 
         return messages
 
     @classmethod
-    def get_prompt_cn(cls, task_prompt: str, parents: List[Function], template_function: Function):
+    def get_prompt_cn(
+        cls, task_prompt: str, parents: List[Function], template_function: Function
+    ):
         for indi in parents:
-            assert hasattr(indi, 'algorithm')
+            assert hasattr(indi, "algorithm")
 
         messages = []
 
@@ -474,42 +495,47 @@ Step 2 — Implement the Algorithm
 
         # template
         temp_func = copy.deepcopy(template_function)
-        temp_func.body = '    # TODO: Implement your algorithm logic here\n    pass'
+        temp_func.body = "    # TODO: Implement your algorithm logic here\n    pass"
 
         # Construct prompt content
         content = []
 
-        content.append({
-            "type": "text",
-            "text": f"### Task Assignment\nThe core problem you need to solve is:\n{task_prompt}\n"
-        })
+        content.append(
+            {
+                "type": "text",
+                "text": f"### Task Assignment\nThe core problem you need to solve is:\n{task_prompt}\n",
+            }
+        )
 
         context_text = "### Parent Algorithms\n"
 
         main_parent = parents[0]
-        main_concept = getattr(main_parent, 'algorithm', 'No concept description provided.')
-        main_score = getattr(main_parent, 'score', 'N/A')
+        main_concept = getattr(
+            main_parent, "algorithm", "No concept description provided."
+        )
+        main_score = getattr(main_parent, "score", "N/A")
 
         context_text += f"#### Main Framework (Algorithm #1)\n"
         context_text += f"**Score:** {main_score}\n"
         context_text += f"**Concept:** {main_concept}\n"
-        context_text += f"**Code:**\n```python\n{main_parent.to_code_without_docstring()}\n```\n\n"
+        context_text += (
+            f"**Code:**\n```python\n{main_parent.to_code_without_docstring()}\n```\n\n"
+        )
 
         if len(parents) > 1:
             context_text += "#### Auxiliary Algorithms\n"
             for i, aux_parent in enumerate(parents[1:]):
-                aux_concept = getattr(aux_parent, 'algorithm', 'No concept description provided.')
-                aux_score = getattr(aux_parent, 'score', 'N/A')
+                aux_concept = getattr(
+                    aux_parent, "algorithm", "No concept description provided."
+                )
+                aux_score = getattr(aux_parent, "score", "N/A")
 
                 context_text += f"--- Auxiliary Algorithm #{i + 2} ---\n"
                 context_text += f"**Score:** {aux_score}\n"
                 context_text += f"**Concept:** {aux_concept}\n"
                 context_text += f"**Code:**\n```python\n{aux_parent.to_code_without_docstring()}\n```\n\n"
 
-        content.append({
-            "type": "text",
-            "text": context_text
-        })
+        content.append({"type": "text", "text": context_text})
 
         # Expert instructions
         operator_prompt = f"""### Instructions
@@ -537,20 +563,16 @@ Step 2 — Implement the Algorithm
 - Place all necessary `import` statements inside the function body.
 """
 
-        content.append({
-            "type": "text",
-            "text": operator_prompt
-        })
+        content.append({"type": "text", "text": operator_prompt})
 
-        messages.append({
-            "role": "user",
-            "content": content
-        })
+        messages.append({"role": "user", "content": content})
 
         return messages
 
     @classmethod
-    def get_prompt_lge(cls, task_prompt: str, parents: List['Function'], template_function: 'Function') -> List[Dict]:
+    def get_prompt_lge(
+        cls, task_prompt: str, parents: List["Function"], template_function: "Function"
+    ) -> List[Dict]:
         """
         Generates the prompt for the Local-Global Exploration (LGE) operator.
         Inspired by Particle Swarm Optimization (PSO), it evolves parents[0] (the current algorithm)
@@ -559,7 +581,9 @@ Step 2 — Implement the Algorithm
         import copy
 
         for indi in parents:
-            assert hasattr(indi, 'algorithm'), "Each parent must have an 'algorithm' description."
+            assert hasattr(indi, "algorithm"), (
+                "Each parent must have an 'algorithm' description."
+            )
 
         messages = []
 
@@ -577,23 +601,27 @@ Step 2 — Implement the Algorithm
 
         # 2. Prepare the Template Function Skeleton
         temp_func = copy.deepcopy(template_function)
-        temp_func.body = '    # TODO: Implement your algorithm logic here\n    pass'
+        temp_func.body = "    # TODO: Implement your algorithm logic here\n    pass"
 
         # 3. Construct User Content
         content = []
 
         # 任务背景
-        content.append({
-            "type": "text",
-            "text": f"### Task Assignment\nThe algorithm design task you need to solve is:\n{task_prompt}\n"
-        })
+        content.append(
+            {
+                "type": "text",
+                "text": f"### Task Assignment\nThe algorithm design task you need to solve is:\n{task_prompt}\n",
+            }
+        )
 
         context_text = "Evolutionary Context\n"
         context_text += "You are currently focusing on the following baseline algorithm. Your goal is to evolve and improve it.\n\n"
 
         current_parent = parents[0]
-        curr_concept = getattr(current_parent, 'algorithm', 'No concept description provided.')
-        curr_score = getattr(current_parent, 'score', 'N/A')
+        curr_concept = getattr(
+            current_parent, "algorithm", "No concept description provided."
+        )
+        curr_score = getattr(current_parent, "score", "N/A")
 
         context_text += f"#### Current Algorithm Baseline\n"
         context_text += f"**Score:** {curr_score}\n"
@@ -606,8 +634,10 @@ Step 2 — Implement the Algorithm
             context_text += "Use them as gravitational references to guide the evolution of your Current Algorithm.\n\n"
 
             for i, ref_parent in enumerate(parents[1:]):
-                ref_concept = getattr(ref_parent, 'algorithm', 'No concept description provided.')
-                ref_score = getattr(ref_parent, 'score', 'N/A')
+                ref_concept = getattr(
+                    ref_parent, "algorithm", "No concept description provided."
+                )
+                ref_score = getattr(ref_parent, "score", "N/A")
 
                 context_text += f"--- Reference Optimum #{i + 1} ---\n"
                 context_text += f"**Score:** {ref_score}\n"
@@ -617,10 +647,7 @@ Step 2 — Implement the Algorithm
             context_text += "#### Note\n"
             context_text += "The current algorithm is already the global best known in the swarm. Please perform a deep self-reflection to mutate and push its analytical boundaries further.\n\n"
 
-        content.append({
-            "type": "text",
-            "text": context_text
-        })
+        content.append({"type": "text", "text": context_text})
 
         operator_prompt = f"""### Instructions
 Carefully analyze the Superior References to understand why they achieved higher scores. 
@@ -647,14 +674,8 @@ Step 2 — Implement the Algorithm
 - Do NOT modify the function name, arguments, or return type.
 - Place all necessary `import` statements inside the function body.
 """
-        content.append({
-            "type": "text",
-            "text": operator_prompt
-        })
+        content.append({"type": "text", "text": operator_prompt})
 
-        messages.append({
-            'role': 'user',
-            'content': content
-        })
+        messages.append({"role": "user", "content": content})
 
         return messages

@@ -42,14 +42,16 @@ def solve(num_planes: int, num_runways: int, freeze_time: float, planes: list[di
     return {"schedule": schedule}
 '''
 
-task_description = ("The problem is to schedule landing times for a set of planes across one or more runways such that "
-                    "each landing occurs within its prescribed time window and all pairwise separation requirements "
-                    "are satisfied; specifically, if plane i lands at or before plane j on the same runway, "
-                    "then the gap between their landing times must be at least the specified separation time provided "
-                    "in the input. In a multiple-runway setting, each plane must also be assigned to one runway, "
-                    "and if planes land on different runways, the separation requirement (which may differ) is "
-                    "applied accordingly. Each plane has an earliest, target, and latest landing time, with penalties "
-                    "incurred proportionally for landing before (earliness) or after (lateness) its target time. The "
-                    "objective is to minimize the total penalty cost while ensuring that no constraints are "
-                    "violated—if any constraint is breached, the solution receives no score."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The problem is to schedule landing times for a set of planes across one or more runways such that "
+    "each landing occurs within its prescribed time window and all pairwise separation requirements "
+    "are satisfied; specifically, if plane i lands at or before plane j on the same runway, "
+    "then the gap between their landing times must be at least the specified separation time provided "
+    "in the input. In a multiple-runway setting, each plane must also be assigned to one runway, "
+    "and if planes land on different runways, the separation requirement (which may differ) is "
+    "applied accordingly. Each plane has an earliest, target, and latest landing time, with penalties "
+    "incurred proportionally for landing before (earliness) or after (lateness) its target time. The "
+    "objective is to minimize the total penalty cost while ensuring that no constraints are "
+    "violated—if any constraint is breached, the solution receives no score."
+    "Help me design a novel algorithm to solve this problem."
+)

@@ -34,13 +34,15 @@ def solve(m: int, stock_width: int, stock_height: int, pieces: dict, allow_rotat
     return {"placements": []}
 '''
 
-task_description = ("The unconstrained guillotine cutting problem involves selecting and placing a subset of "
-                    "available pieces within a fixed stock rectangle to maximize the total value of the placed "
-                    "pieces. Each piece, defined by its length, width, and value, may be optionally rotated 90° if "
-                    "allowed and used at most once. The challenge is to determine both the selection and the "
-                    "positioning of these pieces such that they do not overlap and lie entirely within the stock’s "
-                    "boundaries. This optimization problem formalizes the decision variables as the x and y "
-                    "coordinates for the bottom-left placement of each piece and, if rotation is allowed, "
-                    "a binary variable indicating its orientation, while the objective function is to maximize the "
-                    "sum of the values of the pieces successfully placed within the stock."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The unconstrained guillotine cutting problem involves selecting and placing a subset of "
+    "available pieces within a fixed stock rectangle to maximize the total value of the placed "
+    "pieces. Each piece, defined by its length, width, and value, may be optionally rotated 90° if "
+    "allowed and used at most once. The challenge is to determine both the selection and the "
+    "positioning of these pieces such that they do not overlap and lie entirely within the stock’s "
+    "boundaries. This optimization problem formalizes the decision variables as the x and y "
+    "coordinates for the bottom-left placement of each piece and, if rotation is allowed, "
+    "a binary variable indicating its orientation, while the objective function is to maximize the "
+    "sum of the values of the pieces successfully placed within the stock."
+    "Help me design a novel algorithm to solve this problem."
+)

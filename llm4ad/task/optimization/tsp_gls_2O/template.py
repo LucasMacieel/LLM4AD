@@ -30,4 +30,3 @@ def update_edge_distance(edge_distance: np.ndarray, local_opt_tour: np.ndarray, 
 '''
 
 task_description = "Given an edge distance matrix and a local optimal route, please help me design a strategy to update the distance matrix to avoid being trapped in the local optimum with the final goal of finding a tour with minimized distance. You should create a heuristic for me to update the edge distance matrix."
-

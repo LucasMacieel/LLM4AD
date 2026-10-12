@@ -37,6 +37,6 @@ def select_next_assignment(assignments: List[List[int]], remaining_customers: Li
     return None, None
 '''
 
-task_description = '''
+task_description = """
 Given facilities with capacities and customers, iteratively assign customers to facilities while respecting capacity constraints and minimizing total costs. Design a novel algorithm to select the next assignment in each step.
-'''
+"""

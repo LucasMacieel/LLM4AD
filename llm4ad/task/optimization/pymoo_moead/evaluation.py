@@ -34,32 +34,38 @@
 
 from __future__ import annotations
 
-import copy
-from typing import Callable, Any
-import numpy as np
+from typing import Any, Callable
 
+import numpy as np
 from pymoo.algorithms.moo.moead import MOEAD
+from pymoo.decomposition.tchebicheff import Tchebicheff
 from pymoo.indicators.hv import HV
 from pymoo.optimize import minimize
 from pymoo.termination import get_termination
 from pymoo.util.ref_dirs import get_reference_directions
-from pymoo.decomposition.tchebicheff import Tchebicheff
 
 from llm4ad.base import Evaluation
+
 # Assuming the new GetData class is located at the following path
 from llm4ad.task.optimization.pymoo_moead.get_instance import GetData
-from llm4ad.task.optimization.pymoo_moead.template import template_program, task_description
+from llm4ad.task.optimization.pymoo_moead.template import (
+    task_description,
+    template_program,
+)
+
 
 class MOEAD_PYMOO_Evaluation(Evaluation):
-    def __init__(self,
-                 timeout_seconds=100,
-                 n_var=10,
-                 n_obj=3,
-                 n_partitions=12,
-                 pop_size=100,
-                 n_gen=100,
-                 seed=None,
-                 **kwargs):
+    def __init__(
+        self,
+        timeout_seconds=100,
+        n_var=10,
+        n_obj=3,
+        n_partitions=12,
+        pop_size=100,
+        n_gen=100,
+        seed=None,
+        **kwargs,
+    ):
         """
         Parameter Description:
         This evaluator now receives a decomposition function via the evaluate_program interface.
@@ -68,14 +74,16 @@ class MOEAD_PYMOO_Evaluation(Evaluation):
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Following the CVRP pattern, use the GetData class to generate problem instances
         getData = GetData(n_var=n_var, n_obj=n_obj)
         self.problem = getData.get_problem_instance()
 
-        self.ref_dirs = get_reference_directions("das-dennis", self.problem.n_obj, n_partitions=n_partitions)
+        self.ref_dirs = get_reference_directions(
+            "das-dennis", self.problem.n_obj, n_partitions=n_partitions
+        )
         self.pop_size = pop_size if pop_size else len(self.ref_dirs)
         self.n_gen = n_gen
         self.seed = seed
@@ -83,50 +91,64 @@ class MOEAD_PYMOO_Evaluation(Evaluation):
         self.hv_calculator = HV(ref_point=self.hv_ref)
         self.last_result = None
 
-
     def evaluate(self, decomposition_func: Callable = None) -> float:
         """
         Core evaluation method. Returns the evaluation score and stores detailed results in self.last_result.
         """
+
         class DecompAdapter:
             def __init__(self, func):
                 self.func = func
+
             def do(self, F, weights, ideal_point, **kwargs):
                 return self.func(F, weights=weights, ideal_point=ideal_point, **kwargs)
 
-        decomposition = DecompAdapter(decomposition_func) if decomposition_func else Tchebicheff()
+        decomposition = (
+            DecompAdapter(decomposition_func) if decomposition_func else Tchebicheff()
+        )
 
         algorithm = MOEAD(
             ref_dirs=self.ref_dirs,
             n_neighbors=15,
             prob_neighbor_mating=0.7,
             decomposition=decomposition,
-            seed=self.seed
+            seed=self.seed,
         )
 
         termination = get_termination("n_gen", self.n_gen)
-        res = minimize(self.problem, algorithm, termination, seed=self.seed, verbose=False)
+        res = minimize(
+            self.problem, algorithm, termination, seed=self.seed, verbose=False
+        )
 
         hv_value = self.hv_calculator(res.opt.get("F"))
         self.last_result = {"hv": hv_value, "pareto_front": res.opt}
         return -hv_value
-
 
     def evaluate_program(self, program_str: str, callable_func: callable) -> Any:
         return self.evaluate(decomposition_func=callable_func)
 
     def plot_solutions(self, solutions):
         import matplotlib.pyplot as plt
+
         F = solutions.get("F")
         fig = plt.figure(figsize=(10, 8))
-        ax = fig.add_subplot(111, projection='3d')
-        ax.scatter(F[:, 0], F[:, 1], F[:, 2], c='blue', s=30, alpha=0.5)
-        ax.set_xlabel('Objective 1'); ax.set_ylabel('Objective 2'); ax.set_zlabel('Objective 3')
-        ax.set_title(f'MOEAD on {self.problem.__class__.__name__} (HV = {self.hv_calculator(F):.4f})')
-        plt.tight_layout(); plt.show()
+        ax = fig.add_subplot(111, projection="3d")
+        ax.scatter(F[:, 0], F[:, 1], F[:, 2], c="blue", s=30, alpha=0.5)
+        ax.set_xlabel("Objective 1")
+        ax.set_ylabel("Objective 2")
+        ax.set_zlabel("Objective 3")
+        ax.set_title(
+            f"MOEAD on {self.problem.__class__.__name__} (HV = {self.hv_calculator(F):.4f})"
+        )
+        plt.tight_layout()
+        plt.show()
+
 
 if __name__ == "__main__":
-    def custom_decomposition_tchebycheff(F: np.ndarray, weights: np.ndarray, ideal_point: np.ndarray, **kwargs) -> np.ndarray:
+
+    def custom_decomposition_tchebycheff(
+        F: np.ndarray, weights: np.ndarray, ideal_point: np.ndarray, **kwargs
+    ) -> np.ndarray:
         v = np.abs(F - ideal_point) * weights
         return np.max(v, axis=1)
 

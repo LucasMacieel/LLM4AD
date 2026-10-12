@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import copy
 import ast
+import copy
 import random
-import numpy as np
-from typing import Any, List, Callable
+from typing import List
 
-from ...base import Function, TextFunctionProgramConverter, Program
+import numpy as np
+
+from ...base import Function, Program, TextFunctionProgramConverter
 
 
 class LHNSFunction(Function):
@@ -14,8 +15,7 @@ class LHNSFunction(Function):
 
     @classmethod
     def convert_function_to_lhnsfunction(cls, function: Function) -> LHNSFunction:
-        """Convert a Function object to a LHNSFunction object.
-        """
+        """Convert a Function object to a LHNSFunction object."""
         if isinstance(function, LHNSFunction):
             return function
         return LHNSFunction(
@@ -32,13 +32,15 @@ class LHNSProgram(Program):
 
     @classmethod
     def convert_program_to_lhnsprogram(cls, program: Program) -> LHNSProgram:
-        """Convert a Program object to a LHNSProgram object.
-        """
+        """Convert a Program object to a LHNSProgram object."""
         if isinstance(program, LHNSProgram):
             return program
         return LHNSProgram(
             preface=program.preface,
-            functions=[LHNSFunction.convert_function_to_lhnsfunction(func) for func in program.functions],
+            functions=[
+                LHNSFunction.convert_function_to_lhnsfunction(func)
+                for func in program.functions
+            ],
         )
 
 
@@ -49,13 +51,12 @@ class _LHNSProgramVisitor(ast.NodeVisitor):
 
     def __init__(self, sourcecode: str):
         self._codelines: list[str] = sourcecode.splitlines()
-        self._preface: str = ''
+        self._preface: str = ""
         self._functions: list[Function] = []
         self._current_function: str | None = None
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        """Collects all information about the function being parsed.
-        """
+        """Collects all information about the function being parsed."""
         # We only care about first level functions.
         if node.col_offset == 0:
             self._current_function = node.name
@@ -76,16 +77,22 @@ class _LHNSProgramVisitor(ast.NodeVisitor):
                 has_decorators = bool(node.decorator_list)
                 if has_decorators:
                     # find the minimum line number and retain the code above
-                    decorator_start_line = min(decorator.lineno for decorator in node.decorator_list)
-                    self._preface = '\n'.join(self._codelines[:decorator_start_line - 1])
+                    decorator_start_line = min(
+                        decorator.lineno for decorator in node.decorator_list
+                    )
+                    self._preface = "\n".join(
+                        self._codelines[: decorator_start_line - 1]
+                    )
                 else:
-                    self._preface = '\n'.join(self._codelines[:node.lineno - 1])
+                    self._preface = "\n".join(self._codelines[: node.lineno - 1])
             # --------------------------------------------------------------------------------------------
             function_end_line = node.end_lineno
             body_start_line = node.body[0].lineno - 1
             # Extract the docstring.
             docstring = None
-            if isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Str):
+            if isinstance(node.body[0], ast.Expr) and isinstance(
+                node.body[0].value, ast.Str
+            ):
                 docstring = f'    """{ast.literal_eval(ast.unparse(node.body[0]))}"""'
                 if len(node.body) > 1:
                     # ----------------------------------------------------------------------------
@@ -102,13 +109,15 @@ class _LHNSProgramVisitor(ast.NodeVisitor):
                 else:
                     body_start_line = function_end_line
 
-            self._functions.append(Function(
-                name=node.name,
-                args=ast.unparse(node.args),
-                return_type=ast.unparse(node.returns) if node.returns else None,
-                docstring=docstring,
-                body='\n'.join(self._codelines[body_start_line:function_end_line]),
-            ))
+            self._functions.append(
+                Function(
+                    name=node.name,
+                    args=ast.unparse(node.args),
+                    return_type=ast.unparse(node.returns) if node.returns else None,
+                    docstring=docstring,
+                    body="\n".join(self._codelines[body_start_line:function_end_line]),
+                )
+            )
         self.generic_visit(node)
 
     def return_program(self) -> LHNSProgram:
@@ -118,8 +127,7 @@ class _LHNSProgramVisitor(ast.NodeVisitor):
 class LHNSTextFunctionProgramConverter(TextFunctionProgramConverter):
     @classmethod
     def text_to_program(cls, program_str: str) -> LHNSProgram | None:
-        """Returns Program object by parsing input text using Python AST.
-        """
+        """Returns Program object by parsing input text using Python AST."""
         try:
             # We assume that the program is composed of some preface (e.g. imports,
             # classes, assignments, ...) followed by a sequence of functions.
@@ -132,13 +140,14 @@ class LHNSTextFunctionProgramConverter(TextFunctionProgramConverter):
 
     @classmethod
     def text_to_function(cls, program_str: str) -> LHNSFunction | None:
-        """Returns Function object by parsing input text using Python AST.
-        """
+        """Returns Function object by parsing input text using Python AST."""
         try:
             program = cls.text_to_program(program_str)
             if len(program.functions) != 1:
-                raise ValueError(f'Only one function expected, got {len(program.functions)}'
-                                 f':\n{program.functions}')
+                raise ValueError(
+                    f"Only one function expected, got {len(program.functions)}"
+                    f":\n{program.functions}"
+                )
             return program.functions[0]
         except ValueError as value_err:
             raise value_err
@@ -148,7 +157,9 @@ class LHNSTextFunctionProgramConverter(TextFunctionProgramConverter):
 
 class LHNSFunctionRuin:
     @classmethod
-    def delete_function_snips(cls, function: LHNSFunction, cooling_rate: float) -> (LHNSFunction, int):
+    def delete_function_snips(
+        cls, function: LHNSFunction, cooling_rate: float
+    ) -> (LHNSFunction, int):
         """
         Delete lines from the function body.
         Args:
@@ -158,25 +169,33 @@ class LHNSFunctionRuin:
             The modified function without lines deleted.
         """
         func = copy.deepcopy(function)
-        lines = copy.deepcopy(func.body.split('\n'))
+        lines = copy.deepcopy(func.body.split("\n"))
         to_be_deleted_lines_index = []  # "#" and selected lines
         content_lines_index = []  # not "#", "" and import and def
 
         for index, line in enumerate(lines):
             stripped_line = line.strip()
-            if stripped_line.startswith('def ') or stripped_line.startswith('import') or stripped_line == "":
+            if (
+                stripped_line.startswith("def ")
+                or stripped_line.startswith("import")
+                or stripped_line == ""
+            ):
                 continue
-            if stripped_line.startswith('#'):
+            if stripped_line.startswith("#"):
                 to_be_deleted_lines_index.append(index)
             else:
                 if "#" in line:
-                    line.split('#', 1)[0].rstrip()
+                    line.split("#", 1)[0].rstrip()
                 content_lines_index.append(index)
 
         # when number_of_delete is a coefficient
-        number_of_delete_lines = np.ceil(cooling_rate * len(content_lines_index)).astype(int)
-        content_delete_lines = random.choices(content_lines_index,
-                                              k=min([number_of_delete_lines, len(content_lines_index)]))
+        number_of_delete_lines = np.ceil(
+            cooling_rate * len(content_lines_index)
+        ).astype(int)
+        content_delete_lines = random.choices(
+            content_lines_index,
+            k=min([number_of_delete_lines, len(content_lines_index)]),
+        )
         if len(content_delete_lines) == 0:
             raise Exception("No content lines to delete")
         to_be_deleted_lines_index.extend(content_delete_lines)
@@ -186,14 +205,16 @@ class LHNSFunctionRuin:
             if indexI not in to_be_deleted_lines_index:
                 new_code += i
                 if i != lines[-1]:
-                    new_code += '\n'
+                    new_code += "\n"
 
         func.body = new_code
 
         return func, number_of_delete_lines
 
     @classmethod
-    def find_code_features(cls, prev_function: LHNSFunction, new_function: LHNSFunction) -> List[str]:
+    def find_code_features(
+        cls, prev_function: LHNSFunction, new_function: LHNSFunction
+    ) -> List[str]:
         """
         Find the code features of the new function that are not in the previous function.
         Args:
@@ -204,8 +225,8 @@ class LHNSFunctionRuin:
         """
         p_code = prev_function.body
         n_code = new_function.body
-        p_lines = copy.deepcopy(p_code.split('\n'))
-        n_lines = copy.deepcopy(n_code.split('\n'))
+        p_lines = copy.deepcopy(p_code.split("\n"))
+        n_lines = copy.deepcopy(n_code.split("\n"))
         prev_content_lines = []  # not "#", "" and import and def
         new_content_lines = []  # not "#", "" and import and def
 
@@ -214,22 +235,30 @@ class LHNSFunctionRuin:
         # extract effective lines
         for index, line in enumerate(p_lines):
             stripped_line = line.strip()
-            if stripped_line.startswith('def ') or stripped_line.startswith(
-                    'import') or stripped_line == "" or stripped_line.startswith('#'):
+            if (
+                stripped_line.startswith("def ")
+                or stripped_line.startswith("import")
+                or stripped_line == ""
+                or stripped_line.startswith("#")
+            ):
                 continue
             else:
                 if "#" in line:
-                    line.split('#', 1)[0].rstrip()
+                    line.split("#", 1)[0].rstrip()
                 prev_content_lines.append(line.strip())
 
         for index, line in enumerate(n_lines):
             stripped_line = line.strip()
-            if stripped_line.startswith('def ') or stripped_line.startswith(
-                    'import') or stripped_line == "" or stripped_line.startswith('#'):
+            if (
+                stripped_line.startswith("def ")
+                or stripped_line.startswith("import")
+                or stripped_line == ""
+                or stripped_line.startswith("#")
+            ):
                 continue
             else:
                 if "#" in line:
-                    line.split('#', 1)[0].rstrip()
+                    line.split("#", 1)[0].rstrip()
                 new_content_lines.append(line.rstrip())
 
         # compare
@@ -240,7 +269,9 @@ class LHNSFunctionRuin:
         return code_features
 
     @classmethod
-    def merge_features(cls, function: LHNSFunction, features: List[str]) -> LHNSFunction:
+    def merge_features(
+        cls, function: LHNSFunction, features: List[str]
+    ) -> LHNSFunction:
         """
         Merge the features into the function.
         Args:
@@ -250,32 +281,36 @@ class LHNSFunctionRuin:
             The modified function with features merged.
         """
         func = copy.deepcopy(function)
-        lines = copy.deepcopy(func.body.split('\n'))
+        lines = copy.deepcopy(func.body.split("\n"))
         to_be_deleted_lines_index = []  # "#" and selected lines
         content_lines_index = []  # not "#", "" and import and def
 
         for index, line in enumerate(lines):
             stripped_line = line.strip()
-            if stripped_line.startswith('def ') or stripped_line.startswith('import') or stripped_line == "":
+            if (
+                stripped_line.startswith("def ")
+                or stripped_line.startswith("import")
+                or stripped_line == ""
+            ):
                 continue
-            if stripped_line.startswith('#'):
+            if stripped_line.startswith("#"):
                 to_be_deleted_lines_index.append(index)
             else:
                 if "#" in line:
-                    line.split('#', 1)[0].rstrip()
+                    line.split("#", 1)[0].rstrip()
                 content_lines_index.append(index)
 
         new_code = ""
         for indexI, i in enumerate(lines[:-1]):
             if indexI not in to_be_deleted_lines_index:
                 new_code += i
-                new_code += '\n'
+                new_code += "\n"
 
         # insert code feature
         if features is not None:
             for i in features:
                 new_code += i
-                new_code += '\n'
+                new_code += "\n"
 
         new_code += lines[-1]
         func.body = new_code

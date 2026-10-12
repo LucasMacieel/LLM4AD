@@ -27,8 +27,10 @@ def choose_action(ct1: float, st1: float, ct2: float, st2: float, avt1: float, a
     return action
 '''
 
-task_description = ("I need help designing an innovative heuristic strategy function to control an acrobot, aiming to "
-                    "swing the lower link to generate enough momentum for the upper link to reach a target height. At "
-                    "each step, the function should select a specific action based on the acrobot's joint angles and "
-                    "angular velocities to efficiently reach the goal without unnecessary oscillations or excessive "
-                    "control effort.")
+task_description = (
+    "I need help designing an innovative heuristic strategy function to control an acrobot, aiming to "
+    "swing the lower link to generate enough momentum for the upper link to reach a target height. At "
+    "each step, the function should select a specific action based on the acrobot's joint angles and "
+    "angular velocities to efficiently reach the goal without unnecessary oscillations or excessive "
+    "control effort."
+)

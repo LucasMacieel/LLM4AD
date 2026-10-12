@@ -26,13 +26,15 @@ def solve(m:int, n:int, cost_matrix:list, consumption_matrix:list, capacities:li
     return {'assignments': assignments}
 '''
 
-task_description = ("The Generalized Assignment Problem (GAP) involves assigning \( n \) jobs to \( m \) agents such "
-                    "that each job is assigned to exactly one agent, and the resource consumption for each agent does "
-                    "not exceed its capacity. The objective is to optimize the total cost based on the problem type. "
-                    "When formulated as a maximization problem, the goal is to maximize the total cost; when "
-                    "formulated as a minimization problem, the goal is to minimize the total cost. Given a cost "
-                    "matrix (representing the cost of assigning jobs to agents), a consumption matrix (indicating the "
-                    "resource usage per assignment), and capacities (the resource limits for each agent), the task is "
-                    "to find a valid assignment that meets the capacity constraints while optimizing the total cost "
-                    "as specified by the problem indicator."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The Generalized Assignment Problem (GAP) involves assigning \\( n \\) jobs to \\( m \\) agents such "
+    "that each job is assigned to exactly one agent, and the resource consumption for each agent does "
+    "not exceed its capacity. The objective is to optimize the total cost based on the problem type. "
+    "When formulated as a maximization problem, the goal is to maximize the total cost; when "
+    "formulated as a minimization problem, the goal is to minimize the total cost. Given a cost "
+    "matrix (representing the cost of assigning jobs to agents), a consumption matrix (indicating the "
+    "resource usage per assignment), and capacities (the resource limits for each agent), the task is "
+    "to find a valid assignment that meets the capacity constraints while optimizing the total cost "
+    "as specified by the problem indicator."
+    "Help me design a novel algorithm to solve this problem."
+)

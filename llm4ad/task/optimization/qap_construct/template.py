@@ -31,6 +31,6 @@ def select_next_assignment(flow_matrix: np.ndarray, distance_matrix: np.ndarray)
 
 '''
 
-task_description = '''
+task_description = """
 The task is to assign a set of facilities to a set of locations in such a way that the total cost of interactions between facilities is minimized.
-'''
+"""

@@ -16,7 +16,9 @@ def choose_action(pos: float, v: float, last_action: int) -> int:
     return np.random.randint(3)
 '''
 
-task_description = ("Implement a function that designing a novel strategy function that guide the car along an uneven "
-                    "road, moving step by step towards a target. At each step, a specific action will be chosen based "
-                    "on the car's current position and velocity, aiming to reach the destination in the minimum "
-                    "number of steps.")
+task_description = (
+    "Implement a function that designing a novel strategy function that guide the car along an uneven "
+    "road, moving step by step towards a target. At each step, a specific action will be chosen based "
+    "on the car's current position and velocity, aiming to reach the destination in the minimum "
+    "number of steps."
+)

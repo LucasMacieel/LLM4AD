@@ -35,7 +35,9 @@ class GetData:
             processing_times = []
             for _ in range(self.n_jobs):
                 # Randomly assign processing times for each machine
-                job_processing_times = np.random.randint(10, 100, size=self.n_machines).tolist()
+                job_processing_times = np.random.randint(
+                    10, 100, size=self.n_machines
+                ).tolist()
                 processing_times.append(job_processing_times)
 
             instance_data.append((processing_times, self.n_jobs, self.n_machines))

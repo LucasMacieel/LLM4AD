@@ -53,13 +53,15 @@ def solve(m: int, stocks: list, pieces: list) -> dict:
     return solution
 '''
 
-task_description = ("This optimization problem involves arranging a set of rectangular pieces within available stock "
-                    "rectangles to minimize the overall waste area percentage. Each stock rectangle has a defined "
-                    "area, and each piece—which may be rotated by 90°—must be fully contained within a stock without "
-                    "overlapping with other pieces. Additionally, each piece type has specific total minimum and "
-                    "maximum placement limits. You have access to an unlimited number of stocks for each type, "
-                    "but you may use at most two stock types. The objective is to achieve the lowest possible waste "
-                    "area percentage, defined as the ratio of unused area to the total stock area. Solutions must "
-                    "ensure efficient resource utilization while satisfying all geometric and quantity constraints. "
-                    "Any violation of these constraints results in no score."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "This optimization problem involves arranging a set of rectangular pieces within available stock "
+    "rectangles to minimize the overall waste area percentage. Each stock rectangle has a defined "
+    "area, and each piece—which may be rotated by 90°—must be fully contained within a stock without "
+    "overlapping with other pieces. Additionally, each piece type has specific total minimum and "
+    "maximum placement limits. You have access to an unlimited number of stocks for each type, "
+    "but you may use at most two stock types. The objective is to achieve the lowest possible waste "
+    "area percentage, defined as the ratio of unused area to the total stock area. Solutions must "
+    "ensure efficient resource utilization while satisfying all geometric and quantity constraints. "
+    "Any violation of these constraints results in no score."
+    "Help me design a novel algorithm to solve this problem."
+)

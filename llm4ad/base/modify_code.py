@@ -23,17 +23,18 @@ import ast
 import io
 import tokenize
 from collections.abc import Iterator, MutableSet
-from typing import Sequence, Tuple, List, Dict, Any
+from typing import Any, List, Sequence, Tuple
 
 
 class ModifyCode:
     @classmethod
     def add_decorator(
-            cls,
-            program: str,
-            function_name: str,
-            decorator_name: str | List[str],
-            decorator_args: List[str | Tuple[str, Any]] = None) -> str:
+        cls,
+        program: str,
+        function_name: str,
+        decorator_name: str | List[str],
+        decorator_args: List[str | Tuple[str, Any]] = None,
+    ) -> str:
         """Add wrapper: @module_name.wrapper_name(...) to the function.
         Args:
             program       : The program in string.
@@ -72,18 +73,16 @@ class ModifyCode:
         >>>
         ----------------------------------------------------------------------------------
         """
-        return _add_decorator(
-            program, function_name, decorator_name, decorator_args
-        )
+        return _add_decorator(program, function_name, decorator_name, decorator_args)
 
     @classmethod
     def add_import_package_statement(
-            cls,
-            program: str,
-            package_name: str,
-            as_name: str | None = None,
-            *,
-            check_imported: bool = True
+        cls,
+        program: str,
+        package_name: str,
+        as_name: str | None = None,
+        *,
+        check_imported: bool = True,
     ) -> str:
         """Add 'import package_name as as_name' in the program code.
         Args:
@@ -98,7 +97,9 @@ class ModifyCode:
             # check if 'import package_name' code exists
             package_imported = False
             for node in tree.body:
-                if isinstance(node, ast.Import) and any(alias.name == package_name for alias in node.names):
+                if isinstance(node, ast.Import) and any(
+                    alias.name == package_name for alias in node.names
+                ):
                     package_imported = True
                     break
 
@@ -112,42 +113,46 @@ class ModifyCode:
         return program
 
     @classmethod
-    def add_numpy_random_seed_to_func(cls, program: str, func_name: str, seed: int = 2024) -> str:
+    def add_numpy_random_seed_to_func(
+        cls, program: str, func_name: str, seed: int = 2024
+    ) -> str:
         tree = ast.parse(program)
 
         for node in tree.body:
             if isinstance(node, ast.FunctionDef) and node.name == func_name:
-                node.body = [ast.parse(f'np.random.seed({seed})').body[0]] + node.body
+                node.body = [ast.parse(f"np.random.seed({seed})").body[0]] + node.body
 
         modified_code = ast.unparse(tree)
         return modified_code
 
     @classmethod
     def replace_div_with_protected_div(
-            cls,
-            program: str,
-            delta: float = 1e-5,
-            numba_accelerate: bool = False,
-            return_div_func_name: bool = False
+        cls,
+        program: str,
+        delta: float = 1e-5,
+        numba_accelerate: bool = False,
+        return_div_func_name: bool = False,
     ) -> str | Tuple[str, str]:
-        protected_div_str = f'''
+        protected_div_str = f"""
 def _protected_div(x, y, delta={delta}):
     return x / (y + delta)
-        '''
+        """
         tree = ast.parse(program)
-        transformer = _CustomDivisionTransformer('_protected_div')
+        transformer = _CustomDivisionTransformer("_protected_div")
         modified_tree = transformer.visit(tree)
         modified_code = ast.unparse(modified_tree)
-        modified_code = '\n'.join([modified_code, '', protected_div_str])
+        modified_code = "\n".join([modified_code, "", protected_div_str])
         if numba_accelerate:
-            modified_code = cls.add_numba_decorator(modified_code, '_protected_div')
+            modified_code = cls.add_numba_decorator(modified_code, "_protected_div")
 
         if return_div_func_name:
-            return modified_code, '_protected_div'
+            return modified_code, "_protected_div"
         return modified_code
 
     @classmethod
-    def add_np_random_seed_below_numpy_import(cls, program: str, seed: int = 2024) -> str:
+    def add_np_random_seed_below_numpy_import(
+        cls, program: str, seed: int = 2024
+    ) -> str:
         """Add 'import numpy as np' statement (if needed) to the program and insert 'np.random.seed(seed)' under it.
         Args:
             program: program you want to add.
@@ -155,7 +160,7 @@ def _protected_div(x, y, delta={delta}):
         Returns:
             modified_code: program with 'np.random.seed(...)'.
         """
-        program = cls.add_import_package_statement(program, 'numpy', 'np')
+        program = cls.add_import_package_statement(program, "numpy", "np")
         tree = ast.parse(program)
 
         # find 'import numpy as np'
@@ -163,7 +168,9 @@ def _protected_div(x, y, delta={delta}):
 
         # find 'import numpy as np' statement
         for node in tree.body:
-            if isinstance(node, ast.Import) and any(alias.name == 'numpy' and alias.asname == 'np' for alias in node.names):
+            if isinstance(node, ast.Import) and any(
+                alias.name == "numpy" and alias.asname == "np" for alias in node.names
+            ):
                 found_numpy_import = True
                 # insert new node
                 node_idx = tree.body.index(node)
@@ -171,15 +178,15 @@ def _protected_div(x, y, delta={delta}):
                     value=ast.Call(
                         func=ast.Attribute(
                             value=ast.Attribute(
-                                value=ast.Name(id='np', ctx=ast.Load()),
-                                attr='random',
-                                ctx=ast.Load()
+                                value=ast.Name(id="np", ctx=ast.Load()),
+                                attr="random",
+                                ctx=ast.Load(),
                             ),
-                            attr='seed',
-                            ctx=ast.Load()
+                            attr="seed",
+                            ctx=ast.Load(),
                         ),
                         args=[ast.Constant(value=seed)],
-                        keywords=[]
+                        keywords=[],
                     )
                 )
                 tree.body.insert(node_idx + 1, seed_node)
@@ -220,8 +227,7 @@ def _protected_div(x, y, delta={delta}):
 
     @classmethod
     def rename_function(cls, code: str, source_name: str, target_name: str) -> str:
-        """Renames function calls from `source_name` to `target_name`.
-        """
+        """Renames function calls from `source_name` to `target_name`."""
         if source_name not in code:
             return code
         modified_tokens = []
@@ -233,7 +239,7 @@ def _protected_div(x, y, delta={delta}):
                     string=target_name,
                     start=token.start,
                     end=token.end,
-                    line=token.line
+                    line=token.line,
                 )
                 modified_tokens.append(modified_token)
             else:
@@ -242,15 +248,14 @@ def _protected_div(x, y, delta={delta}):
 
     @classmethod
     def get_functions_name(cls, code: str) -> MutableSet[str]:
-        """Returns the set of all function name in `code`.
-        """
-        return set(token.string for token, is_call in
-                   _yield_token_and_is_call(code) if is_call)
+        """Returns the set of all function name in `code`."""
+        return set(
+            token.string for token, is_call in _yield_token_and_is_call(code) if is_call
+        )
 
     @classmethod
     def yield_decorated(cls, code: str, module: str, name: str) -> Iterator[str]:
-        """Yields names of functions decorated with `@module.name` in `code`.
-        """
+        """Yields names of functions decorated with `@module.name` in `code`."""
         tree = ast.parse(code)
         for node in ast.walk(tree):
             if isinstance(node, ast.FunctionDef):
@@ -260,9 +265,11 @@ def _protected_div(x, y, delta={delta}):
                         attribute = decorator
                     elif isinstance(decorator, ast.Call):
                         attribute = decorator.func
-                    if (attribute is not None
-                            and attribute.value.id == module
-                            and attribute.attr == name):
+                    if (
+                        attribute is not None
+                        and attribute.value.id == module
+                        and attribute.attr == name
+                    ):
                         yield node.name
 
 
@@ -280,23 +287,24 @@ def _untokenize(tokens: Sequence[tokenize.TokenInfo]) -> str:
 
 
 def _yield_token_and_is_call(code: str) -> Iterator[tuple[tokenize.TokenInfo, bool]]:
-    """Yields each token with a bool indicating whether it is a function call.
-    """
+    """Yields each token with a bool indicating whether it is a function call."""
     try:
         tokens = _tokenize(code)
         prev_token = None
         is_attribute_access = False
         for token in tokens:
-            if (prev_token and  # If the previous token exists and
-                    prev_token.type == tokenize.NAME and  # it is a Python identifier
-                    token.type == tokenize.OP and  # and the current token is a delimiter
-                    token.string == '('):  # and in particular it is '('.
+            if (
+                prev_token  # If the previous token exists and
+                and prev_token.type == tokenize.NAME  # it is a Python identifier
+                and token.type == tokenize.OP  # and the current token is a delimiter
+                and token.string == "("
+            ):  # and in particular it is '('.
                 yield prev_token, not is_attribute_access
                 is_attribute_access = False
             else:
                 if prev_token:
                     is_attribute_access = (
-                            prev_token.type == tokenize.OP and prev_token.string == '.'
+                        prev_token.type == tokenize.OP and prev_token.string == "."
                     )
                     yield prev_token, False
             prev_token = token
@@ -307,12 +315,12 @@ def _yield_token_and_is_call(code: str) -> Iterator[tuple[tokenize.TokenInfo, bo
 
 
 def _add_decorator(
-        program: str,
-        function_name: str,
-        decorator_name: str | List[str],
-        decorator_args: List[str | Tuple[str, Any]] = None) -> str:
-    """Add wrapper: @a.b.c(xx=True) to the function.
-    """
+    program: str,
+    function_name: str,
+    decorator_name: str | List[str],
+    decorator_args: List[str | Tuple[str, Any]] = None,
+) -> str:
+    """Add wrapper: @a.b.c(xx=True) to the function."""
     args, kwargs = [], []
     if decorator_args is not None:
         for arg in decorator_args:
@@ -323,7 +331,7 @@ def _add_decorator(
 
     # construct decorator
     if isinstance(decorator_name, str):
-        module_parts = decorator_name.split('.')
+        module_parts = decorator_name.split(".")
     else:
         module_parts = decorator_name
     attribute_node = ast.Name(id=module_parts[0], ctx=ast.Load())
@@ -351,23 +359,22 @@ def _add_decorator(
     return modified_program
 
 
-def _add_numba_decorator(
-        program: str,
-        function_name: str
-) -> str:
+def _add_numba_decorator(program: str, function_name: str) -> str:
     # parse to syntax tree
     tree = ast.parse(program)
 
     # check if 'import numba' already exists
     numba_imported = False
     for node in tree.body:
-        if isinstance(node, ast.Import) and any(alias.name == 'numba' for alias in node.names):
+        if isinstance(node, ast.Import) and any(
+            alias.name == "numba" for alias in node.names
+        ):
             numba_imported = True
             break
 
     # add 'import numba' to the top of the program
     if not numba_imported:
-        import_node = ast.Import(names=[ast.alias(name='numba', asname=None)])
+        import_node = ast.Import(names=[ast.alias(name="numba", asname=None)])
         tree.body.insert(0, import_node)
 
     # traverse the tree, and find the function_to_run
@@ -376,12 +383,12 @@ def _add_numba_decorator(
             # the '@numba.jit()' decorator instance
             decorator = ast.Call(
                 func=ast.Attribute(
-                    value=ast.Name(id='numba', ctx=ast.Load()),
-                    attr='jit',
-                    ctx=ast.Load()
+                    value=ast.Name(id="numba", ctx=ast.Load()),
+                    attr="jit",
+                    ctx=ast.Load(),
                 ),
                 args=[],  # args do not have argument name
-                keywords=[ast.keyword(arg='nopython', value=ast.Constant(value=True))]
+                keywords=[ast.keyword(arg="nopython", value=ast.Constant(value=True))],
                 # keywords have argument name
             )
             # add the decorator to the decorator_list of the node
@@ -404,15 +411,17 @@ class _CustomDivisionTransformer(ast.NodeTransformer):
             custom_divide_call = ast.Call(
                 func=ast.Name(id=self._custom_div_func, ctx=ast.Load()),
                 args=[node.left, node.right],
-                keywords=[]
+                keywords=[],
             )
             return custom_divide_call
         return node
 
 
-if __name__ == '__main__':
-    program = '''
+if __name__ == "__main__":
+    program = """
 def f():
-    return 0'''
-    res = ModifyCode.add_decorator(program, 'f', 'a.b.c.d', [1, True, ('e', 'all'), ('f', True)])
+    return 0"""
+    res = ModifyCode.add_decorator(
+        program, "f", "a.b.c.d", [1, True, ("e", "all"), ("f", True)]
+    )
     print(res)

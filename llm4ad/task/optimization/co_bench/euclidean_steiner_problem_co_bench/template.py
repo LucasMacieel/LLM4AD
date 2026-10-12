@@ -32,12 +32,14 @@ def solve(points: list) -> dict:
     return {"steiner_points": steiner_points}
 '''
 
-task_description = ("Given a set of 2D points (terminals), the goal of the Euclidean Steiner Problem is to compute a "
-                    "tree connecting all terminals with minimum total length. The total length is measured as the sum "
-                    "of Euclidean distances (where the Euclidean distance between two points (x1,y1) and (x2,"
-                    "y2) is sqrt((x1-x2)² + (y1-y2)²)). Unlike a Minimum Spanning Tree (MST) computed solely on the "
-                    "given terminals, a Steiner tree may introduce extra points, called Steiner points, to reduce the "
-                    "overall length. In this formulation, it is assumed that the final candidate tree’s total length "
-                    "is given by the MST computed on the union of the original terminals and the reported Steiner "
-                    "points. A lower ratio (candidate_tree_length/MST_original_length) indicates a better solution."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "Given a set of 2D points (terminals), the goal of the Euclidean Steiner Problem is to compute a "
+    "tree connecting all terminals with minimum total length. The total length is measured as the sum "
+    "of Euclidean distances (where the Euclidean distance between two points (x1,y1) and (x2,"
+    "y2) is sqrt((x1-x2)² + (y1-y2)²)). Unlike a Minimum Spanning Tree (MST) computed solely on the "
+    "given terminals, a Steiner tree may introduce extra points, called Steiner points, to reduce the "
+    "overall length. In this formulation, it is assumed that the final candidate tree’s total length "
+    "is given by the MST computed on the union of the original terminals and the reported Steiner "
+    "points. A lower ratio (candidate_tree_length/MST_original_length) indicates a better solution."
+    "Help me design a novel algorithm to solve this problem."
+)

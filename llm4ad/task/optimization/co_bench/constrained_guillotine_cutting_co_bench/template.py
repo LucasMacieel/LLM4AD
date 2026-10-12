@@ -39,18 +39,20 @@ def solve(m: int, stock_length: int, stock_width: int, piece_types: list) -> dic
     return {"total_value": 0, "placements": []}
 '''
 
-task_description = ("The problem involves optimizing the guillotine feasible placement of a set of rectangular pieces "
-                    "on a given stock sheet to maximize total value. Each piece type is characterized by its length, "
-                    "width, an upper bound on the number of times it may appear in the final cutting pattern, "
-                    "and an assigned value. Orientation of the pieces is fixed (the edges of the pieces are parallel "
-                    "to the edges of the sheet). The task is to select and place pieces such that each lies "
-                    "completely within the boundaries of the stock sheet, no two pieces overlap, and the number of "
-                    "pieces of any type does not exceed its specified maximum. A set of placements is considered "
-                    "guillotine feasible if there exists at least one straight cut (vertical or horizontal) that does "
-                    "not slice through any rectangle, and the property holds recursively on the resulting subregions. "
-                    "Empty regions or regions exactly matching a placed piece are considered valid.The objective is "
-                    "to maximize the sum of the values of the placed pieces; however, if any spatial or count "
-                    "constraint is violated, the solution is deemed invalid. The output is defined as a dictionary "
-                    "reporting the total value and a list of placements, with each placement specified by the piece "
-                    "type index, x and y coordinates, placed dimensions, and orientation flag."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The problem involves optimizing the guillotine feasible placement of a set of rectangular pieces "
+    "on a given stock sheet to maximize total value. Each piece type is characterized by its length, "
+    "width, an upper bound on the number of times it may appear in the final cutting pattern, "
+    "and an assigned value. Orientation of the pieces is fixed (the edges of the pieces are parallel "
+    "to the edges of the sheet). The task is to select and place pieces such that each lies "
+    "completely within the boundaries of the stock sheet, no two pieces overlap, and the number of "
+    "pieces of any type does not exceed its specified maximum. A set of placements is considered "
+    "guillotine feasible if there exists at least one straight cut (vertical or horizontal) that does "
+    "not slice through any rectangle, and the property holds recursively on the resulting subregions. "
+    "Empty regions or regions exactly matching a placed piece are considered valid.The objective is "
+    "to maximize the sum of the values of the placed pieces; however, if any spatial or count "
+    "constraint is violated, the solution is deemed invalid. The output is defined as a dictionary "
+    "reporting the total value and a list of placements, with each placement specified by the piece "
+    "type index, x and y coordinates, placed dimensions, and orientation flag."
+    "Help me design a novel algorithm to solve this problem."
+)

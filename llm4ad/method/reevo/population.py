@@ -4,13 +4,16 @@ import copy
 import math
 from threading import Lock
 from typing import List
+
 import numpy as np
 
 from ...base import *
 
 
 class Population:
-    def __init__(self, pop_size, generation=0, pop: List[Function] | Population | None = None):
+    def __init__(
+        self, pop_size, generation=0, pop: List[Function] | Population | None = None
+    ):
         if pop is None:
             self._population = []
         elif isinstance(pop, list):
@@ -47,7 +50,7 @@ class Population:
     def survival(self):
         pop = self._population + self._next_gen_pop
         pop = sorted(pop, key=lambda f: f.score, reverse=True)
-        self._population = pop[:self._pop_size]
+        self._population = pop[: self._pop_size]
         self._next_gen_pop = []
         self._generation += 1
 
@@ -58,11 +61,11 @@ class Population:
         # if the score is None, we still put it into the population,
         # we set the score to '-inf'
         if func.score is None:
-            func.score = float('-inf')
+            func.score = float("-inf")
         try:
             self._lock.acquire()
             if self.has_duplicate_function(func):
-                func.score = float('-inf')
+                func.score = float("-inf")
             # register to next_gen
             self._next_gen_pop.append(func)
             # update: perform survival if reach the pop size

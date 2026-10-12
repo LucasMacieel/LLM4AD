@@ -15,5 +15,7 @@ def equation(x: np.ndarray, v: np.ndarray, params: np.ndarray) -> np.ndarray:
     return dv
 '''
 
-task_description = ("Find the mathematical function skeleton that represents acceleration in a damped nonlinear "
-                    "oscillator system with driving force, given data on position, and velocity.")
+task_description = (
+    "Find the mathematical function skeleton that represents acceleration in a damped nonlinear "
+    "oscillator system with driving force, given data on position, and velocity."
+)

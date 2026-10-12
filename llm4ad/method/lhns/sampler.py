@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import re
-from typing import Tuple, List, Dict
+from typing import Tuple
 
-from .prompt import LHNSPrompt
-from .func_ruin import LHNSFunction, LHNSProgram
 from ...base import LLM, SampleTrimmer
+from .func_ruin import LHNSFunction, LHNSProgram
 
 
 class LHNSSampler:
@@ -24,7 +23,7 @@ class LHNSSampler:
     @classmethod
     def trim_thought_from_response(cls, response: str) -> str | None:
         try:
-            pattern = r'\{.*?\}'  # Compared with r'\{(.*)\}'
+            pattern = r"\{.*?\}"  # Compared with r'\{(.*)\}'
             bracketed_texts = re.findall(pattern, response)
             return bracketed_texts[0]
         except:

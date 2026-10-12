@@ -31,4 +31,3 @@ def custom_decomposition(F: np.ndarray,
     v = np.abs(F - ideal_point) * weights
     return np.max(v, axis=1)
 '''
-

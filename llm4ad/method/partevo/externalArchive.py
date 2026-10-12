@@ -25,7 +25,7 @@
 
 import random
 from threading import RLock
-from typing import List, Tuple, Dict, Optional
+from typing import Dict, List, Optional, Tuple
 
 from ...base import Function
 
@@ -42,7 +42,12 @@ class ExternalArchive:
        for the Semantic Exploration (SE) operator, fully thread-safe with fault tolerance.
     """
 
-    def __init__(self, max_elites: int = 5, max_hard_negatives: int = 30, summary_update_interval: int = 12):
+    def __init__(
+        self,
+        max_elites: int = 5,
+        max_hard_negatives: int = 30,
+        summary_update_interval: int = 12,
+    ):
         self.max_elites = max_elites
         self.max_hard_negatives = max_hard_negatives
 
@@ -130,15 +135,18 @@ class ExternalArchive:
                 self.hard_negatives.pop()  # Discard the absolute weakest
                 self._has_unsummarized_updates = True
 
-    def _sample_for_contrastive_context(self, k_elites: int = 4, k_negatives: int = 4) -> Tuple[
-        List[Function], List[Function]]:
+    def _sample_for_contrastive_context(
+        self, k_elites: int = 4, k_negatives: int = 4
+    ) -> Tuple[List[Function], List[Function]]:
         """Samples individuals for the SE operator."""
         with self._lock:
             k_e = min(len(self.elites), k_elites)
             sampled_elites = self.elites[:k_e]
 
             k_n = min(len(self.hard_negatives), k_negatives)
-            sampled_negatives = random.sample(self.hard_negatives, k_n) if k_n > 0 else []
+            sampled_negatives = (
+                random.sample(self.hard_negatives, k_n) if k_n > 0 else []
+            )
 
             return sampled_elites, sampled_negatives
 
@@ -158,18 +166,22 @@ class ExternalArchive:
             if not self.elites and not self.hard_negatives:
                 return self._cached_summary, False, {}
 
-            is_cycle_reached = (self._request_counter % self._summary_update_interval == 0)
+            is_cycle_reached = (
+                self._request_counter % self._summary_update_interval == 0
+            )
 
-            requires_new = (
-                    not self._cached_summary
-                    or (is_cycle_reached and self._has_unsummarized_updates)
+            requires_new = not self._cached_summary or (
+                is_cycle_reached and self._has_unsummarized_updates
             )
 
             # Check if update is needed AND no other thread is currently updating
             if requires_new and not self._is_summary_generation_locked:
                 self._is_summary_generation_locked = True  # Acquire virtual lock
                 elite_samples, negative_samples = self._sample_for_contrastive_context()
-                context_dict = {'elites': elite_samples, 'hard_negatives': negative_samples}
+                context_dict = {
+                    "elites": elite_samples,
+                    "hard_negatives": negative_samples,
+                }
                 return self._cached_summary, True, context_dict
             else:
                 # Return cached data if no update needed, or if another thread is already generating

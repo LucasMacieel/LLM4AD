@@ -29,12 +29,14 @@ def solve(data: list[list[int]]) -> dict:
     return {'assignment': [1] * num_individuals}
 '''
 
-task_description = ("The task is to partition a set of individuals—each characterized by multiple binary "
-                    "attributes—into exactly 8 groups such that the distribution of attribute values is as balanced "
-                    "as possible across these groups. For each attribute, count the number of individuals with a ‘1’ "
-                    "in each group. The optimization objective is to minimize the total imbalance, which is defined "
-                    "as follows: for each attribute, calculate the absolute differences between the count in each "
-                    "group and the mean count across all groups, take the average of these differences, and then sum "
-                    "these averages over all attributes. The goal is to determine a group assignment for each "
-                    "individual that achieves the lowest possible total imbalance score."
-                    "Help me design a novel algorithm to solve this problem.")
+task_description = (
+    "The task is to partition a set of individuals—each characterized by multiple binary "
+    "attributes—into exactly 8 groups such that the distribution of attribute values is as balanced "
+    "as possible across these groups. For each attribute, count the number of individuals with a ‘1’ "
+    "in each group. The optimization objective is to minimize the total imbalance, which is defined "
+    "as follows: for each attribute, calculate the absolute differences between the count in each "
+    "group and the mean count across all groups, take the average of these differences, and then sum "
+    "these averages over all attributes. The goal is to determine a group assignment for each "
+    "individual that achieves the lowest possible total imbalance score."
+    "Help me design a novel algorithm to solve this problem."
+)

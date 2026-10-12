@@ -7,11 +7,7 @@ def generate_weibull_dataset(num_instances, num_items, capacity_limit):
     dataset = {}
 
     for i in range(num_instances):
-        instance = {
-            'capacity': capacity_limit,
-            'num_items': num_items,
-            'items': []
-        }
+        instance = {"capacity": capacity_limit, "num_items": num_items, "items": []}
 
         items = []
 
@@ -28,9 +24,9 @@ def generate_weibull_dataset(num_instances, num_items, capacity_limit):
         for size in sizes:
             items.append(size)
 
-        instance['items'] = np.array(items)
+        instance["items"] = np.array(items)
 
         if num_items not in dataset:
-            dataset[f'instance_{i}'] = instance
+            dataset[f"instance_{i}"] = instance
 
     return dataset

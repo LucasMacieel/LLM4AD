@@ -22,33 +22,34 @@
 from __future__ import annotations
 
 from typing import Any
-import numpy as np
-from llm4ad.base import Evaluation
-from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
-from llm4ad.task.optimization.co_bench.corporate_structuring_co_bench.template import template_program, task_description
 
-__all__ = ['CSEvaluationCB']
+import numpy as np
+
+from llm4ad.base import Evaluation
+from llm4ad.task.optimization.co_bench.corporate_structuring_co_bench.template import (
+    task_description,
+    template_program,
+)
+from llm4ad.task.optimization.co_bench.utils import load_subdir_as_text
+
+__all__ = ["CSEvaluationCB"]
 
 
 class CSEvaluationCB(Evaluation):
-
-    def __init__(self,
-                 timeout_seconds=50,
-                 **kwargs):
-
+    def __init__(self, timeout_seconds=50, **kwargs):
         """
-            Args:
-                None
-            Raises:
-                AttributeError: If the data key does not exist.
-                FileNotFoundError: If the specified data file is not found.
+        Args:
+            None
+        Raises:
+            AttributeError: If the data key does not exist.
+            FileNotFoundError: If the specified data file is not found.
         """
 
         super().__init__(
             template_program=template_program,
             task_description=task_description,
             use_numba_accelerate=False,
-            timeout_seconds=timeout_seconds
+            timeout_seconds=timeout_seconds,
         )
 
         # Load datasets from Hugging Face
@@ -56,10 +57,12 @@ class CSEvaluationCB(Evaluation):
         self._datasets = {}
         for filename in dataset:
             # Join all text rows into a single string
-            text_content = '\n'.join([row['text'] for row in dataset[filename]])
+            text_content = "\n".join([row["text"] for row in dataset[filename]])
             self._datasets[filename] = text_content
 
-    def evaluate_program(self, program_str: str, callable_func: callable, **kwargs) -> Any | None:
+    def evaluate_program(
+        self, program_str: str, callable_func: callable, **kwargs
+    ) -> Any | None:
         return self.evaluate(callable_func)
 
     def evaluate(self, eva: callable) -> float | None:
@@ -71,8 +74,14 @@ class CSEvaluationCB(Evaluation):
         try:
             for i in ins_cases:
                 for j in i:
-                    result = eva(j['N'], j['target'], j['countries'], j['withholding'])
-                    fitness = self.eval_func(j['N'], j['target'], j['countries'], j['withholding'], result['structure'])
+                    result = eva(j["N"], j["target"], j["countries"], j["withholding"])
+                    fitness = self.eval_func(
+                        j["N"],
+                        j["target"],
+                        j["countries"],
+                        j["withholding"],
+                        result["structure"],
+                    )
                     fitness_list.append(fitness)
 
             return np.mean(fitness_list)  # itself is a maximize problem
@@ -98,7 +107,9 @@ class CSEvaluationCB(Evaluation):
              - "withholding": (dict of dict) where withholding[i][j] is the withholding tax rate from country i to j.
         """
         cases = []
-        lines = [line.strip() for line in input_string.split('\n') if line.strip() != '']
+        lines = [
+            line.strip() for line in input_string.split("\n") if line.strip() != ""
+        ]
 
         i = 0
         total_lines = len(lines)
@@ -113,12 +124,18 @@ class CSEvaluationCB(Evaluation):
 
             # Parse country data.
             if i + N > total_lines:
-                raise ValueError("Not enough lines for country data in a case starting at line {}.".format(i + 1))
+                raise ValueError(
+                    "Not enough lines for country data in a case starting at line {}.".format(
+                        i + 1
+                    )
+                )
             countries = {}
             for country in range(1, N + 1):
                 parts = lines[i].split()
                 if len(parts) < 4:
-                    raise ValueError("Incomplete country data at line {}.".format(i + 1))
+                    raise ValueError(
+                        "Incomplete country data at line {}.".format(i + 1)
+                    )
                 tax_code = int(parts[0])
                 foreign_rate = float(parts[1])
                 domestic_rate = float(parts[2])
@@ -134,8 +151,11 @@ class CSEvaluationCB(Evaluation):
                 i += 1
 
             if len(withholding_tokens) < N * N:
-                raise ValueError("Incomplete withholding tax matrix: expected {} numbers, got {}.".format(N * N,
-                                                                                                          len(withholding_tokens)))
+                raise ValueError(
+                    "Incomplete withholding tax matrix: expected {} numbers, got {}.".format(
+                        N * N, len(withholding_tokens)
+                    )
+                )
 
             # Build the withholding matrix from tokens.
             withholding = {}
@@ -147,12 +167,14 @@ class CSEvaluationCB(Evaluation):
                     token_index += 1
 
             # Append the parsed case to the list.
-            cases.append({
-                "N": N,
-                "target": target,
-                "countries": countries,
-                "withholding": withholding
-            })
+            cases.append(
+                {
+                    "N": N,
+                    "target": target,
+                    "countries": countries,
+                    "withholding": withholding,
+                }
+            )
         return cases
 
     def eval_func(self, N, target, countries, withholding, structure):
@@ -211,11 +233,26 @@ class CSEvaluationCB(Evaluation):
             elif countries[i][0] == 2:
                 return d_income + total_f_income * (1 - countries[i][1])
             elif countries[i][0] == 3:
-                return d_income + total_f_income - sum(
-                    [max(0, f_income[c] - (1 - countries[i][1]) * P_cache[c]) for c in children[i]])
+                return (
+                    d_income
+                    + total_f_income
+                    - sum(
+                        [
+                            max(0, f_income[c] - (1 - countries[i][1]) * P_cache[c])
+                            for c in children[i]
+                        ]
+                    )
+                )
             else:
-                return d_income + total_f_income - max(0, total_f_income - (1 - countries[i][1]) * (
-                        P_cache[i] - countries[i][3]))
+                return (
+                    d_income
+                    + total_f_income
+                    - max(
+                        0,
+                        total_f_income
+                        - (1 - countries[i][1]) * (P_cache[i] - countries[i][3]),
+                    )
+                )
 
         def foreign_income(i):
             if len(children.get(i, [])) == 0:
@@ -260,9 +297,12 @@ class CSEvaluationCB(Evaluation):
         return normed
 
     def get_dev(self):
-        dev = {'tax1.txt': [], 'tax3.txt': [], 'tax5.txt': [],
-               'tax7.txt': [], 'tax9.txt': []}
+        dev = {
+            "tax1.txt": [],
+            "tax3.txt": [],
+            "tax5.txt": [],
+            "tax7.txt": [],
+            "tax9.txt": [],
+        }
 
         return dev
-
-
